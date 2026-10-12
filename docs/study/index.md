@@ -1,11 +1,12 @@
 # Study materials
 
-Everything is grouped by purpose. A good order: read **Overview**, go deep with **Deep dives**, test yourself with **Quizzes** and **Practice tests**, and use **Mind maps** to remember the structure.
+Everything is grouped by purpose. A good order: read **Overview**, go deep with **Deep dives**, see it applied in **Real-world practice**, test yourself with **Quizzes** and **Practice tests**, and use **Mind maps** to remember the structure.
 
 | Folder | What it is | Start with |
 |---|---|---|
 | [Overview](overview/summary.md) | One-page exam summary and the Azure services map | [Summary](overview/summary.md) |
 | [Deep dives](deep-dives/best-practices-and-real-world-scenarios.md) | How things work, worked examples, decision guides, exam traps | [Best practices overview](deep-dives/best-practices-and-real-world-scenarios.md) |
+| [Real-world practice](real-world/index.md) | End-to-end case studies: architecture, build steps, quality plan, operations, failure modes | [Overview](real-world/index.md) |
 | [Quizzes](quizzes/rag-retrieval-and-grounding-quiz.md) | Flashcards and scenario questions for each deep dive | Pick the topic you just read |
 | [Practice tests](practice-tests/practice-test-1-review.md) | Review of full practice tests with confidence labels | [Practice test 1](practice-tests/practice-test-1-review.md) |
 | [Mind maps](mind-maps/mindmap.md) | Visual memory aids (exam outline and services) | [Mind maps](mind-maps/mindmap.md) |

@@ -147,6 +147,20 @@ This follows the Learn sample. `model_deployment` is the judge model deployment 
 choose type → create & test → add tools/data → save version → trace → evaluate → (optimize) → publish → monitor → iterate
 ```
 
+### The nine steps, one by one
+
+1. **Choose an agent type.** *Decide how much you build and how much Foundry runs.* A **prompt agent** is configuration only (instructions, model, tools). A **voice-based prompt agent** adds real-time speech through Voice Live. A **hosted agent** is your own code in a container. Choosing wrongly early means a rewrite later: pick the simplest type that meets the need. *Output:* a decision and a project.
+2. **Create the agent and start testing.** *Get a first working version and see real behavior.* You write instructions, pick a model, and chat with it in the **playground** or in code. Early testing finds misunderstood instructions in minutes. *Output:* a draft agent; unsaved changes are temporary.
+3. **Add tools and data.** *Give the agent knowledge and the ability to act.* Attach retrieval (files, indexes, knowledge bases), OpenAPI or MCP tools, or functions. A tool that needs authentication must be **configured successfully before you can save** the agent, because a half-configured tool would fail later in production. *Output:* an agent that can answer from data and act.
+4. **Save changes as versions.** *Freeze a known state you can compare, evaluate and return to.* Each save creates an **immutable version** identified as `<agent_name>:<version>`. Without saving you cannot see conversation history, monitor performance or run full evaluations. *Output:* a numbered version.
+5. **Debug with tracing.** *See what really happened inside a run.* Open a trace to confirm the agent called the tools you expected, inspect inputs and outputs, and find latency hot spots. Do this *before* judging quality, because many "quality" problems are really wrong tool calls. *Output:* an understanding of behavior, and fixes to instructions or tool descriptions.
+6. **Evaluate quality and safety.** *Measure instead of guessing.* Run repeatable evaluations (task adherence, tool accuracy, groundedness, safety, red teaming) on a test set. Run them again **after every meaningful change** to catch regressions before users do. *Output:* scores per version, and a pass/fail decision.
+7. **Optimize (Preview, hosted agents).** *Improve instructions and discover skills automatically.* The agent optimizer evaluates behavior and proposes better instructions, tool descriptions and model choices. Treat its output as a suggestion that you must re-evaluate. *Output:* candidate improvements.
+8. **Publish and integrate.** *Give the agent a stable address and identity for real users.* Publishing creates a stable endpoint and a **distinct agent identity**; the permissions of the project identity do **not** transfer, so reassign only the access the agent needs. *Output:* a published agent application you can call from your app, Teams or Copilot.
+9. **Monitor and iterate.** *Treat the agent like production software.* Watch quality and safety signals, review traces when behavior changes, then update, re-evaluate and republish. The loop returns to step 2 with real-world data. *Output:* dashboards, alerts and new test cases.
+
+The order matters: **trace before evaluate** (find mechanical faults first), **evaluate before publish** (do not discover regressions in production), and **monitor after publish** (quality can drift even when nothing changed).
+
 ### Versions are immutable
 Every saved change creates a **new version**; an existing version never changes. You can compare **setup, chat output and YAML** between versions and **send requests to a specific version**, which makes rollout and rollback controlled. Unsaved edits are temporary and cannot be fully evaluated or monitored. A saved agent's name cannot change; in code you refer to `<agent_name>:<version>`.
 

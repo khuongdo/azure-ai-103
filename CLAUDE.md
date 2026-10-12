@@ -2,6 +2,10 @@
 
 Study repo for the **Microsoft AI-103: Developing AI Apps and Agents on Azure** exam (Azure AI Apps and Agents Developer Associate). This is not a code repo; the content is mostly Markdown.
 
+## Project memory
+
+Persistent working preferences for this repo are stored in `.claude/memory/` (index: `.claude/memory/MEMORY.md`). Read it at the start of a session and follow it. Keep it in sync when a preference changes, and do not store secrets or personal data there (the repo is public).
+
 ## Structure
 
 ```
@@ -14,6 +18,7 @@ docs/
     ├── index.md          # Study hub: explains the folders and pairs deep dives with quizzes
     ├── overview/         # One-page summary, Azure services map
     ├── deep-dives/       # Topic notes: mechanisms, worked examples, decision guides, traps
+    ├── real-world/       # End-to-end case studies of real problems (no exam tips; those go elsewhere)
     ├── quizzes/          # <topic>-quiz.md: flashcards and scenario questions for a deep dive
     ├── practice-tests/   # Reviews of full practice tests
     └── mind-maps/        # Markmap pages (mindmap.md embeds the *-view.html files)
@@ -24,6 +29,7 @@ docs/
 - `docs/official/`: copy only from official sources (learn.microsoft.com). Every file has `source` and `retrieved` frontmatter. Do not add AI commentary here. When updating, change `retrieved`.
 - `docs/study/`: every file must map to one section of `skills-measured.md`, say which one, and cite official module/doc links as sources. Never invent API names, parameters, limits or prices. If unsure, write `[NEEDS VERIFICATION]` and check Microsoft Learn again.
 - Prefer GA features; clearly mark Preview ones.
+- **Explain every step.** When a page shows a pipeline, flow, lifecycle or architecture diagram, explain each step: its goal, what happens inside, a concrete example, what can go wrong and how to check it. A list of steps or a failure table alone is not enough. After an architecture diagram add a walkthrough with a concrete scenario. Split flows into phases when natural (for example offline indexing vs online query).
 - Language:
   - **Conversation between the user and Claude: Vietnamese** (chat, reports, clarifying questions).
   - **Code: English** (variable/function/file names, code comments, commit messages, config such as `mkdocs.yml` and workflows).

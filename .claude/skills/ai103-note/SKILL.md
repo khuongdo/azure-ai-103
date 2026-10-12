@@ -20,7 +20,7 @@ Create one study note file under `docs/study/` for exactly one section of the st
 
 ## File template
 
-File name: descriptive English kebab-case, for example `build-rag-application.md`. Save it in the folder that matches its purpose: topic notes go in `docs/study/deep-dives/`, summaries and service maps in `docs/study/overview/`.
+File name: descriptive English kebab-case, for example `build-rag-application.md`. Save it in the folder that matches its purpose: topic notes go in `docs/study/deep-dives/`, summaries and service maps in `docs/study/overview/`, and end-to-end case studies of real business problems in `docs/study/real-world/` (problem, why it is an AI-103 problem, architecture, build steps, quality plan, operations, failure modes, variations; keep exam tips out of these pages).
 
 ```markdown
 ---
@@ -58,6 +58,7 @@ retrieved: <YYYY-MM-DD today>
 - Say only what the sources support. If unsure or no source is found, write `[NEEDS VERIFICATION]` right at that spot instead of guessing.
 - Prefer GA features. Mark Preview features with `(Preview)`, because the exam mostly asks about GA.
 - Code samples: verify package/class/function names from the docs. If unsure, put `[NEEDS VERIFICATION]` next to that line. Use keyless auth (`DefaultAzureCredential`) instead of hardcoded keys, which matches the security section of the exam.
+- **Explain every step of any pipeline, flow, lifecycle or diagram** you include: goal, what happens inside, a concrete example, what can go wrong, how to check. Never leave a bare arrow chain such as `A → B → C` without explaining each stage. After an architecture diagram add a walkthrough with a concrete scenario.
 - Do not copy long passages from Microsoft Learn; rephrase in your own English and link to the source.
 - Do not edit anything in `docs/official/`.
 - One file = one section. Split sections that are too large.

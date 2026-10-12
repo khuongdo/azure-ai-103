@@ -36,6 +36,16 @@ nav:
       - Capacity, cost, throttling: study/deep-dives/capacity-cost-and-throttling.md
       - Platform, network, reliability: study/deep-dives/platform-network-and-reliability.md
       - Observability and lifecycle: study/deep-dives/observability-and-agent-lifecycle.md
+    - Real-world practice:
+      - Overview: study/real-world/index.md
+      - Enterprise knowledge assistant: study/real-world/enterprise-knowledge-assistant.md
+      - Invoice and contract automation: study/real-world/document-processing-automation.md
+      - Customer support agent: study/real-world/customer-support-agent.md
+      - Contact center voice and analytics: study/real-world/contact-center-voice-and-analytics.md
+      - Multilingual content pipeline: study/real-world/multilingual-content-pipeline.md
+      - Media generation and understanding: study/real-world/multimodal-media-and-marketing.md
+      - Multi-agent workflow automation: study/real-world/multi-agent-workflow-automation.md
+      - Shipping AI apps to production: study/real-world/shipping-ai-apps-to-production.md
     - Quizzes:
       - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
       - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
