@@ -17,6 +17,7 @@ docs/
 └── study/      # AI-generated study material based on docs/official (grouped by purpose)
     ├── index.md          # Study hub: explains the folders and pairs deep dives with quizzes
     ├── overview/         # One-page summary, Azure services map
+    ├── course/           # Syllabus and coverage matrix per exam domain
     ├── deep-dives/       # Topic notes: mechanisms, worked examples, decision guides, traps
     ├── real-world/       # End-to-end case studies of real problems (no exam tips; those go in exam-tips/)
     ├── exam-tips/        # Exam technique only: reading questions, clue words, traps and patterns by topic
@@ -37,7 +38,7 @@ docs/
   - All content in `docs/study/` (notes, flashcards, questions, explanations) is written in **English**, because the exam is in English and the learner needs the exact terms and phrasing used in questions. Use simple, clear wording.
 - File names: kebab-case and descriptive (for example `plan-manage-ai-solution.md`).
 - Placement: put each new study file in the folder that matches its purpose (see Structure). A quiz for `deep-dives/<topic>.md` is `quizzes/<topic>-quiz.md`.
-- **Navigation is explicit.** `mkdocs.yml` has a hand-written `nav:`. When you add, move or rename a study file, update `nav:` and the tables in `docs/study/index.md`, then run `mkdocs build --strict`. Use relative links between folders (for example `../deep-dives/<topic>.md`).
+- **Navigation is explicit.** `mkdocs.yml` has a hand-written `nav:`. When you add, move or rename a study file, update `nav:` (grouped by exam domain: Lessons, Case studies, Quizzes) and the domain tables in `docs/study/index.md`, then run `mkdocs build --strict`. Use relative links between folders (for example `../deep-dives/<topic>.md`).
 - When reporting to the user: be concise and list unresolved questions at the end.
 
 ## Website (MkDocs Material, GitHub Pages)

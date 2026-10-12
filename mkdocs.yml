@@ -24,52 +24,94 @@ theme:
 
 nav:
   - Home: index.md
-  - Study:
-    - study/index.md
-    - Overview:
-      - Summary: study/overview/summary.md
-      - Azure services map: study/overview/azure-services-overview.md
-    - Deep dives:
-      - Best practices overview: study/deep-dives/best-practices-and-real-world-scenarios.md
-      - Retrieval and grounding: study/deep-dives/rag-retrieval-and-grounding.md
-      - Agent safety and identity: study/deep-dives/agent-safety-and-identity.md
-      - Capacity, cost, throttling: study/deep-dives/capacity-cost-and-throttling.md
+  - Start here:
+    - Study hub: study/index.md
+    - Syllabus and study plan: study/course/index.md
+    - Coverage matrix: study/course/coverage-matrix.md
+    - Exam summary: study/overview/summary.md
+    - Azure services map: study/overview/azure-services-overview.md
+    - Best practices overview: study/deep-dives/best-practices-and-real-world-scenarios.md
+  - "1. Plan and manage":
+    - Lessons:
+      - Model and service selection: study/deep-dives/model-and-service-selection.md
       - Platform, network, reliability: study/deep-dives/platform-network-and-reliability.md
+      - Capacity, cost, throttling: study/deep-dives/capacity-cost-and-throttling.md
+      - Responsible AI and governance: study/deep-dives/responsible-ai-governance.md
       - Observability and lifecycle: study/deep-dives/observability-and-agent-lifecycle.md
-    - Real-world practice:
-      - Overview: study/real-world/index.md
-      - Enterprise knowledge assistant: study/real-world/enterprise-knowledge-assistant.md
-      - Invoice and contract automation: study/real-world/document-processing-automation.md
-      - Customer support agent: study/real-world/customer-support-agent.md
-      - Contact center voice and analytics: study/real-world/contact-center-voice-and-analytics.md
-      - Multilingual content pipeline: study/real-world/multilingual-content-pipeline.md
-      - Media generation and understanding: study/real-world/multimodal-media-and-marketing.md
-      - Multi-agent workflow automation: study/real-world/multi-agent-workflow-automation.md
+      - CI/CD for Foundry: study/deep-dives/cicd-for-foundry-projects.md
+    - Case studies:
       - Shipping AI apps to production: study/real-world/shipping-ai-apps-to-production.md
-    - Exam tips:
-      - Overview: study/exam-tips/index.md
-      - Reading exam questions: study/exam-tips/reading-exam-questions.md
-      - Traps and patterns by topic: study/exam-tips/traps-and-patterns-by-topic.md
     - Quizzes:
-      - Deep dives:
-        - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
-        - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
-        - Capacity, cost, throttling: study/quizzes/capacity-cost-and-throttling-quiz.md
-        - Platform, network, reliability: study/quizzes/platform-network-and-reliability-quiz.md
-        - Observability and lifecycle: study/quizzes/observability-and-agent-lifecycle-quiz.md
-      - Real-world case studies:
-        - Knowledge assistant: study/quizzes/enterprise-knowledge-assistant-quiz.md
-        - Invoice and contract automation: study/quizzes/document-processing-automation-quiz.md
-        - Customer support agent: study/quizzes/customer-support-agent-quiz.md
-        - Contact center voice and analytics: study/quizzes/contact-center-voice-and-analytics-quiz.md
-        - Multilingual content pipeline: study/quizzes/multilingual-content-pipeline-quiz.md
-        - Media generation and understanding: study/quizzes/multimodal-media-and-marketing-quiz.md
-        - Multi-agent workflow automation: study/quizzes/multi-agent-workflow-automation-quiz.md
-        - Shipping AI apps to production: study/quizzes/shipping-ai-apps-to-production-quiz.md
-    - Practice tests:
-      - Practice test 1 review: study/practice-tests/practice-test-1-review.md
-    - Mind maps:
-      - Mind maps: study/mind-maps/mindmap.md
+      - Model and service selection: study/quizzes/model-and-service-selection-quiz.md
+      - Platform, network, reliability: study/quizzes/platform-network-and-reliability-quiz.md
+      - Capacity, cost, throttling: study/quizzes/capacity-cost-and-throttling-quiz.md
+      - Responsible AI and governance: study/quizzes/responsible-ai-governance-quiz.md
+      - Observability and lifecycle: study/quizzes/observability-and-agent-lifecycle-quiz.md
+      - CI/CD for Foundry: study/quizzes/cicd-for-foundry-projects-quiz.md
+      - "Case: Shipping AI apps to production": study/quizzes/shipping-ai-apps-to-production-quiz.md
+  - "2. Generative AI and agents":
+    - Lessons:
+      - Foundry SDK and apps: study/deep-dives/foundry-sdk-and-generative-apps.md
+      - Prompting and parameters: study/deep-dives/prompt-engineering-parameters-and-reflection.md
+      - Retrieval and grounding: study/deep-dives/rag-retrieval-and-grounding.md
+      - Building agents: study/deep-dives/building-agents-with-foundry.md
+      - Agent safety and identity: study/deep-dives/agent-safety-and-identity.md
+    - Case studies:
+      - Enterprise knowledge assistant: study/real-world/enterprise-knowledge-assistant.md
+      - Customer support agent: study/real-world/customer-support-agent.md
+      - Multi-agent workflows: study/real-world/multi-agent-workflow-automation.md
+    - Quizzes:
+      - Foundry SDK and apps: study/quizzes/foundry-sdk-and-generative-apps-quiz.md
+      - Prompting and parameters: study/quizzes/prompt-engineering-parameters-and-reflection-quiz.md
+      - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
+      - Building agents: study/quizzes/building-agents-with-foundry-quiz.md
+      - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
+      - "Case: Enterprise knowledge assistant": study/quizzes/enterprise-knowledge-assistant-quiz.md
+      - "Case: Customer support agent": study/quizzes/customer-support-agent-quiz.md
+      - "Case: Multi-agent workflows": study/quizzes/multi-agent-workflow-automation-quiz.md
+  - "3. Computer vision":
+    - Lessons:
+      - Image and video generation: study/deep-dives/image-and-video-generation.md
+      - Multimodal understanding: study/deep-dives/multimodal-understanding.md
+      - Responsible multimodal AI: study/deep-dives/responsible-ai-for-multimodal-content.md
+    - Case studies:
+      - Media generation and understanding: study/real-world/multimodal-media-and-marketing.md
+    - Quizzes:
+      - Image and video generation: study/quizzes/image-and-video-generation-quiz.md
+      - Multimodal understanding: study/quizzes/multimodal-understanding-quiz.md
+      - Responsible multimodal AI: study/quizzes/responsible-ai-for-multimodal-content-quiz.md
+      - "Case: Media generation and understanding": study/quizzes/multimodal-media-and-marketing-quiz.md
+  - "4. Text, speech, translation":
+    - Lessons:
+      - Text analysis and LLMs: study/deep-dives/text-analysis-language-and-llms.md
+      - Speech solutions: study/deep-dives/speech-solutions.md
+      - Translation: study/deep-dives/translation.md
+    - Case studies:
+      - Contact center voice: study/real-world/contact-center-voice-and-analytics.md
+      - Multilingual pipeline: study/real-world/multilingual-content-pipeline.md
+    - Quizzes:
+      - Text analysis and LLMs: study/quizzes/text-analysis-language-and-llms-quiz.md
+      - Speech solutions: study/quizzes/speech-solutions-quiz.md
+      - Translation: study/quizzes/translation-quiz.md
+      - "Case: Contact center voice": study/quizzes/contact-center-voice-and-analytics-quiz.md
+      - "Case: Multilingual pipeline": study/quizzes/multilingual-content-pipeline-quiz.md
+  - "5. Information extraction":
+    - Lessons:
+      - Azure AI Search configuration: study/deep-dives/azure-ai-search-configuration.md
+      - Content Understanding and Document Intelligence: study/deep-dives/content-understanding-and-document-intelligence.md
+    - Case studies:
+      - Invoice and contract automation: study/real-world/document-processing-automation.md
+    - Quizzes:
+      - Azure AI Search configuration: study/quizzes/azure-ai-search-configuration-quiz.md
+      - Content Understanding and Document Intelligence: study/quizzes/content-understanding-and-document-intelligence-quiz.md
+      - "Case: Invoice and contract automation": study/quizzes/document-processing-automation-quiz.md
+  - Exam preparation:
+    - Overview: study/exam-tips/index.md
+    - Reading exam questions: study/exam-tips/reading-exam-questions.md
+    - Traps and patterns by topic: study/exam-tips/traps-and-patterns-by-topic.md
+    - Practice test 1 review: study/practice-tests/practice-test-1-review.md
+    - Mind maps: study/mind-maps/mindmap.md
+    - Real-world overview: study/real-world/index.md
 
 markdown_extensions:
   - nl2br

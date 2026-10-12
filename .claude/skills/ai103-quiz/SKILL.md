@@ -14,7 +14,7 @@ Turn an existing note in `docs/study/` into a set of flashcards and practice que
 1. **Pick the note**: the user names a file; if not, list `docs/study/` and pick the closest match, saying which one you picked. If no note exists for the topic, suggest using the `ai103-note` skill first instead of inventing content.
 2. **Read the note** and its frontmatter (`skill`, `sources`). Cover the bullets in "Exam scope" evenly instead of piling onto one part.
 3. **Generate the content** into `docs/study/quizzes/<note-name>-quiz.md` (for `deep-dives/<topic>.md` the quiz is `quizzes/<topic>-quiz.md`) using the template below. Link back to the note with a relative path such as `../deep-dives/<topic>.md`, and set `note:` in the frontmatter to the note's full path.
-4. **Register it**: add the quiz to the `nav:` in `mkdocs.yml` and to the pairs table in `docs/study/index.md`, then run `mkdocs build --strict`.
+4. **Register it**: add the quiz to its domain's Quizzes group in the `nav:` of `mkdocs.yml` and to the domain table in `docs/study/index.md`, then run `mkdocs build --strict`.
 5. **Report** briefly: the file, number of flashcards, number of questions, and any `[NEEDS VERIFICATION]` items.
 
 ## File template

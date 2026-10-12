@@ -15,7 +15,7 @@ Create one study note file under `docs/study/` for exactly one section of the st
 2. **Find related modules**: read `docs/official/learning-paths.md` and pick the Learn modules that match this section.
 3. **Get real sources**: use WebFetch/WebSearch on `learn.microsoft.com` for the modules and related docs. Do not write volatile details from memory (SDK names, class names, parameters, limits, SKUs, prices, GA/Preview status), because Foundry and the agent SDKs change fast.
 4. **Write the file** using the template below.
-5. **Register it**: add the file to the `nav:` in `mkdocs.yml` and to the tables in `docs/study/index.md`, use relative links to other study folders, and run `mkdocs build --strict` to catch broken links.
+5. **Register it**: add the file to the right domain in the `nav:` of `mkdocs.yml` (Lessons, Case studies or Quizzes) and to the domain table in `docs/study/index.md`, plus the syllabus (`course/index.md`) and coverage matrix when it is a new lesson, use relative links to other study folders, and run `mkdocs build --strict` to catch broken links.
 6. **Report** briefly: the file created, which section, any `[NEEDS VERIFICATION]` spots, and open questions.
 
 ## File template

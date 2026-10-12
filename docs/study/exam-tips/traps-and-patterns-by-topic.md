@@ -142,3 +142,27 @@ Explanations: [best practices overview](../deep-dives/best-practices-and-real-wo
 - "Edit only part of an image" → the edit endpoint with a mask (transparent areas are changed).
 - "Label or verify AI-generated content" → Content Credentials (C2PA) and the Content Provenance Detection tool or API.
 
+
+## Language, speech, translation and extraction
+
+Explanations: [Text analysis](../deep-dives/text-analysis-language-and-llms.md) · [Speech](../deep-dives/speech-solutions.md) · [Translation](../deep-dives/translation.md) · [Search configuration](../deep-dives/azure-ai-search-configuration.md) · [CU and Document Intelligence](../deep-dives/content-understanding-and-document-intelligence.md)
+
+### Patterns
+
+- "Redact personal data before the model" → Language PII detection.
+- "New sentiment, summary or intent project" → Foundry models (Language versions retire March 31, 2029).
+- "Many call recordings with speakers" → batch transcription with diarization; custom speech needs no endpoint for batch.
+- "More than two translation targets in speech" → Foundry resource, extra fees.
+- "Quick domain adaptation from a few thousand pairs" → adaptive custom translation; large parallel corpus → Custom Translator.
+- "Enriched text missing from the index" → output field mapping.
+- "Vectorizer must match the embedding skill model."
+- "Multi-document PDF" → Content Understanding `enableSegment` with `contentCategories` (include `other`).
+
+### Traps
+
+| Trap | Reality |
+|---|---|
+| "Custom speech always needs a deployed endpoint" | Not for batch transcription |
+| "Models field takes the deployment name" | Content Understanding wants the model name |
+| "Indexers update in real time" | Minimum schedule is five minutes; push for faster |
+| "Image severity is 0 to 7" | Image model returns 0, 2, 4, 6 |
