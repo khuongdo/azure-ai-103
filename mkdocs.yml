@@ -26,6 +26,8 @@ nav:
   - Home: index.md
   - Summary: study/summary.md
   - Azure services map: study/azure-services-overview.md
+  - Best practices and scenarios: study/best-practices-and-real-world-scenarios.md
+  - Practice test 1 review: study/practice-test-1-review.md
   - Mind maps: study/mindmap.md
 
 markdown_extensions:
