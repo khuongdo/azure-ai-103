@@ -2,6 +2,8 @@
 
 Exam prep for **AI-103: Developing AI Apps and Agents on Azure** (120 minutes, passing score 700/1000).
 
+**Site:** https://khuongdo.github.io/azure-ai-103/
+
 - `docs/official/` — copies of official material from Microsoft Learn (skills measured, learning paths, links)
 - `docs/study/` — AI-generated study material based on the sources above
 
