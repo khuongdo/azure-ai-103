@@ -33,7 +33,3 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
-extra_css:
-  - stylesheets/mindmap.css
-extra_javascript:
-  - https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18.12

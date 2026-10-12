@@ -26,7 +26,7 @@ docs/
 
 - Repo **public**. Site chỉ gồm `docs/index.md` và `docs/study/`; `docs/official/` bị loại khỏi site bằng `exclude_docs` trong `mkdocs.yml`.
 - `docs/official/skills-measured.md` là bản chép nguyên văn của Microsoft nên được `.gitignore` (chỉ giữ local, không đưa lên repo public). Mất file thì lấy lại từ https://aka.ms/AI103-StudyGuide.
-- Mindmap dùng Markmap (`docs/study/mindmap.md`, khối `<div class="markmap">`, không để dòng trống ngoài `---` trong template) và Mermaid `mindmap` cho sơ đồ nhỏ trong từng ghi chú.
+- Mindmap dùng Markmap nằm trong trang riêng `docs/study/mindmap-view.html` (không dùng CSS của theme, vì CSS Material làm Markmap vỡ bố cục), nhúng vào `mindmap.md` bằng iframe. Sửa nội dung mindmap trong khối `<script type="text/template">` của file HTML. Mermaid `mindmap` dùng cho sơ đồ nhỏ trong từng ghi chú.
 - Build thử: `pip install -r requirements.txt && mkdocs build --strict`. Push lên `main` thì workflow `.github/workflows/deploy.yml` tự đăng.
 
 ## Thể loại tài liệu học nên tạo (trong `docs/study/`)

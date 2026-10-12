@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-103 mind map</title>
+<style>
+  /* Standalone page (no site theme CSS) so Markmap measures text correctly */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; color: #222; font-family: system-ui, sans-serif; }
+  .markmap { width: 100vw; height: 100vh; }
+  .markmap svg { width: 100%; height: 100%; }
+  @media (prefers-color-scheme: dark) {
+    html, body { background: #1e2129; color: #e6e6e6; }
+    .markmap { --markmap-text-color: #e6e6e6; --markmap-code-bg: #333; --markmap-code-color: #eee; }
+  }
+</style>
+</head>
+<body>
+<div class="markmap"><script type="text/template">
+---
+markmap:
+  initialExpandLevel: 2
+---
+# AI-103
+## Plan and manage an Azure AI solution (25–30%)
+### Choose Foundry services
+- Models: LLM, small, multimodal
+- Retrieval and indexing
+- Memory, tools, knowledge for agents
+### Set up in Foundry
+- Infrastructure and deployment options
+- Model and agent deployments
+- CI/CD
+### Manage, monitor, secure
+- Quotas, scaling, rate limits, cost
+- Drift, safety, grounding quality
+- Managed identity, private networking, keyless
+### Responsible AI
+- Safety filters and guardrails
+- Evaluators and safety evaluations
+- Tracing, provenance, approval workflows
+- Agent oversight and tool-access controls
+## Implement generative AI and agentic solutions (30–35%)
+### Build generative apps
+- Deploy and consume models
+- RAG
+- Workflows and tool-augmented flows
+- Evaluate: fabrications, relevance, quality, safety
+- Foundry SDKs
+### Build agents
+- Roles, goals, tool schemas
+- Retrieval, function calling, memory
+- Multi-agent orchestration
+- Approval flows and safeguards
+- Monitoring and error analysis
+### Optimize and operationalize
+- Prompt engineering and parameters
+- Reflection and self-critique
+- Tracing, token analytics, latency
+- Hybrid LLM and rules
+## Implement computer vision solutions (10–15%)
+### Image and video generation
+- Text and reference media to image or video
+- Inpainting and mask edits
+### Multimodal understanding
+- Captions, alt text, visual QA
+- Content Understanding: single-task and pro mode
+- Video analysis and object detection
+### Responsible AI for multimodal
+- Unsafe visual content filters
+- Indirect prompt injection via image text
+- Visual policy rules
+## Implement text analysis solutions (10–15%)
+### Language model text analysis
+- Entities, topics, summaries, JSON output
+- Sentiment, tone, safety, sensitive content
+- Translation
+### Speech solutions
+- Speech to text and text to speech
+- Speech as agent modality, custom speech
+- Speech translation
+## Implement information extraction solutions (10–15%)
+### Retrieval and grounding pipelines
+- Ingest and index documents, images, audio, video
+- Semantic, hybrid, vector search
+- Enrichment skills and OCR
+- Connect retrieval to agent tools
+### Extract content from documents
+- OCR, layout analysis, field extraction
+- Content Understanding analyzers
+- Structured or markdown output for RAG
+</script></div>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18.12"></script>
+</body>
+</html>
