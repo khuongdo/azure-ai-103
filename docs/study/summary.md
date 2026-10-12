@@ -11,7 +11,7 @@ retrieved: 2026-10-12
 
 # AI-103 summary
 
-One-page text summary for review. Details and sources are in the [Azure services map](azure-services-overview.md). The [mind maps](mindmap.md) are a memory aid for this page, not a replacement. Items marked `[CẦN XÁC MINH]` are not yet confirmed on Microsoft Learn.
+One-page text summary for review. Details and sources are in the [Azure services map](azure-services-overview.md). The [mind maps](mindmap.md) are a memory aid for this page, not a replacement. Items marked `[NEEDS VERIFICATION]` are not yet confirmed on Microsoft Learn.
 
 ## Exam at a glance
 
@@ -38,7 +38,7 @@ Study the first two domains first: together they are 55–65% of the exam.
 - **Multi-agent / interoperability**: Microsoft Agent Framework (course module), **A2A** protocol (v1.0 GA).
 - **Lifecycle**: create → test → trace → evaluate → optimize → publish → monitor. Agents are versioned.
 - **RAG**: ground the model with retrieval (Azure AI Search), then evaluate groundedness and relevance.
-- **Tune behavior**: prompt engineering and model parameters. `[CẦN XÁC MINH]` details not yet researched.
+- **Tune behavior**: prompt engineering and model parameters. `[NEEDS VERIFICATION]` details not yet researched.
 - **SDK**: unified project client `azure-ai-projects` 2.x with `OpenAI()` against one project endpoint.
 
 ## Domain 2: Plan and manage (25–30%)

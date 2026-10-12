@@ -1,42 +1,45 @@
 # CLAUDE.md
 
-Repo học chứng chỉ **Microsoft AI-103: Developing AI Apps and Agents on Azure** (Azure AI Apps and Agents Developer Associate). Không phải repo code; nội dung chính là Markdown.
+Study repo for the **Microsoft AI-103: Developing AI Apps and Agents on Azure** exam (Azure AI Apps and Agents Developer Associate). This is not a code repo; the content is mostly Markdown.
 
-## Cấu trúc
+## Structure
 
 ```
 docs/
-├── official/   # Tài liệu gốc từ Microsoft, chép lại, KHÔNG sửa nội dung
-│   ├── skills-measured.md   # Study guide: các skill được thi + tỷ trọng
-│   ├── learning-paths.md    # 4 learning path / 31 module của khóa AI-103T00
-│   └── links.md             # Link chính thức
-└── study/      # Tài liệu học do AI tạo, dựa trên docs/official
+├── official/   # Copies of Microsoft material; do NOT edit the content
+│   ├── skills-measured.md   # Study guide: skills tested + weights (local only, gitignored)
+│   ├── learning-paths.md    # 4 learning paths / 31 modules of course AI-103T00
+│   └── links.md             # Official links
+└── study/      # AI-generated study material based on docs/official
 ```
 
-## Quy tắc
+## Rules
 
-- `docs/official/`: chỉ chép từ nguồn chính thức (learn.microsoft.com). Mỗi file có frontmatter `source`, `retrieved`. Không thêm diễn giải của AI vào đây. Cập nhật thì đổi `retrieved`.
-- `docs/study/`: mỗi file phải bám một mục trong `skills-measured.md`, ghi rõ mục nào, và dẫn link module/doc chính thức làm nguồn. Không bịa tên API, tham số, giới hạn, giá. Không chắc thì ghi `[CẦN XÁC MINH]` và kiểm tra lại trên Microsoft Learn.
-- Ưu tiên tính năng GA; đánh dấu rõ nếu là Preview.
-- Ngôn ngữ: toàn bộ nội dung trong `docs/study/` (ghi chú, flashcard, câu hỏi, giải thích) viết bằng **tiếng Anh**, vì kỳ thi bằng tiếng Anh và cần quen đúng thuật ngữ/cách diễn đạt của đề. Dùng văn phong đơn giản, rõ ràng. Giao tiếp với user trong chat vẫn bằng tiếng Việt.
-- Tên file: kebab-case, mô tả rõ (vd `plan-manage-ai-solution.md`).
-- Khi viết báo cáo cho user: ngắn gọn, liệt kê câu hỏi chưa giải quyết ở cuối.
+- `docs/official/`: copy only from official sources (learn.microsoft.com). Every file has `source` and `retrieved` frontmatter. Do not add AI commentary here. When updating, change `retrieved`.
+- `docs/study/`: every file must map to one section of `skills-measured.md`, say which one, and cite official module/doc links as sources. Never invent API names, parameters, limits or prices. If unsure, write `[NEEDS VERIFICATION]` and check Microsoft Learn again.
+- Prefer GA features; clearly mark Preview ones.
+- Language:
+  - **Conversation between the user and Claude: Vietnamese** (chat, reports, clarifying questions).
+  - **Code: English** (variable/function/file names, code comments, commit messages, config such as `mkdocs.yml` and workflows).
+  - All content in `docs/study/` (notes, flashcards, questions, explanations) is written in **English**, because the exam is in English and the learner needs the exact terms and phrasing used in questions. Use simple, clear wording.
+- File names: kebab-case and descriptive (for example `plan-manage-ai-solution.md`).
+- When reporting to the user: be concise and list unresolved questions at the end.
 
 ## Website (MkDocs Material, GitHub Pages)
 
-- Repo **public**. Site chỉ gồm `docs/index.md` và `docs/study/`; `docs/official/` bị loại khỏi site bằng `exclude_docs` trong `mkdocs.yml`.
-- `docs/official/skills-measured.md` là bản chép nguyên văn của Microsoft nên được `.gitignore` (chỉ giữ local, không đưa lên repo public). Mất file thì lấy lại từ https://aka.ms/AI103-StudyGuide.
-- Mindmap dùng Markmap nằm trong trang riêng `docs/study/mindmap-view.html` (không dùng CSS của theme, vì CSS Material làm Markmap vỡ bố cục), nhúng vào `mindmap.md` bằng iframe. Sửa nội dung mindmap trong khối `<script type="text/template">` của file HTML. Mermaid `mindmap` dùng cho sơ đồ nhỏ trong từng ghi chú.
-- Build thử: `pip install -r requirements.txt && mkdocs build --strict`. Push lên `main` thì workflow `.github/workflows/deploy.yml` tự đăng.
+- The repo is **public**. The site contains only `docs/index.md` and `docs/study/`; `docs/official/` is excluded from the site through `exclude_docs` in `mkdocs.yml`.
+- `docs/official/skills-measured.md` is a verbatim copy of Microsoft's text, so it is in `.gitignore` (kept local, not pushed to the public repo). If it is lost, fetch it again from https://aka.ms/AI103-StudyGuide.
+- Mind maps use Markmap on standalone pages (`docs/study/mindmap-view.html`, `docs/study/mindmap-services-view.html`) without the theme CSS, because Material's CSS breaks the Markmap layout. They are embedded in `mindmap.md` with iframes. Edit the mind map content inside the `<script type="text/template">` block of each HTML file. Use Mermaid `mindmap` for small diagrams inside individual notes.
+- Build locally: `pip install -r requirements.txt && mkdocs build --strict`. A push to `main` triggers `.github/workflows/deploy.yml`, which publishes the site.
 
-## Thể loại tài liệu học nên tạo (trong `docs/study/`)
+## Kinds of study material to create (in `docs/study/`)
 
-1. Ghi chú theo domain (5 domain: Plan/manage 25–30%, GenAI & agents 30–35%, Vision 10–15%, Text analysis 10–15%, Information extraction 10–15%).
-2. Flashcard (Q/A ngắn) và câu hỏi ôn tập kèm giải thích.
-3. So sánh dịch vụ / "chọn cái nào khi nào" (bảng).
-4. Code mẫu Python (kỳ thi yêu cầu kinh nghiệm Python), ghi rõ SDK + version.
-5. Lộ trình ôn theo tuần.
+1. Notes per domain (5 domains: Plan/manage 25–30%, GenAI & agents 30–35%, Vision 10–15%, Text analysis 10–15%, Information extraction 10–15%).
+2. Flashcards (short Q/A) and practice questions with explanations.
+3. Service comparisons / "when to choose what" (tables).
+4. Python code samples (the exam expects Python experience), with SDK and version.
+5. A weekly revision plan.
 
-## Trạng thái nguồn
+## Source status
 
-Study guide hiệu lực từ 2026-04-16 (page cập nhật 2026-04-14). Kiểm tra lại trước khi thi: https://aka.ms/AI103-StudyGuide
+The study guide is effective from 2026-04-16 (page updated 2026-04-14). Recheck before the exam: https://aka.ms/AI103-StudyGuide

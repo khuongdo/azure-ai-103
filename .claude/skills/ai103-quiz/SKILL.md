@@ -1,22 +1,22 @@
 ---
 name: ai103-quiz
-description: Sinh flashcard và câu hỏi ôn tập bằng tiếng Anh (kèm giải thích và nguồn) cho kỳ thi Microsoft AI-103 từ một ghi chú trong docs/study/. Dùng skill này bất cứ khi nào user muốn tạo quiz, flashcard, câu hỏi trắc nghiệm, đề luyện tập hoặc "test mình" cho một chủ đề AI-103 đã có ghi chú, kể cả khi họ chỉ nói "ra đề phần RAG" hay "làm flashcard cho note này".
+description: Generate English flashcards and practice questions (with explanations and sources) for the Microsoft AI-103 exam from a note in docs/study/. Use this skill whenever the user wants a quiz, flashcards, multiple-choice questions, a practice test or to be "tested" on an AI-103 topic that already has a note, even if they only say "write questions for RAG" or "make flashcards for this note".
 ---
 
 # ai103-quiz
 
-File đầu ra viết hoàn toàn bằng **tiếng Anh** để người học quen với cách ra đề thật; hướng dẫn skill này viết tiếng Việt.
+The output file is written entirely in **English**, so the learner gets used to the style of real exam questions. These instructions are in English too; talk to the user in Vietnamese in chat, as required by the repo `CLAUDE.md`.
 
-Biến một ghi chú đã có trong `docs/study/` thành bộ flashcard và câu hỏi ôn tập, lưu cạnh ghi chú đó. Câu hỏi chỉ có giá trị nếu đáp án đúng và có nguồn, nên mọi câu phải truy được về nội dung trong ghi chú (mà ghi chú đã dẫn nguồn Microsoft Learn).
+Turn an existing note in `docs/study/` into a set of flashcards and practice questions, saved next to that note. A question is only valuable if the answer is correct and sourced, so every question must trace back to the content of the note (which already cites Microsoft Learn sources).
 
-## Quy trình
+## Workflow
 
-1. **Chọn ghi chú**: user chỉ định file; nếu không, liệt kê `docs/study/` và chọn file khớp nhất, nói rõ đã chọn file nào. Nếu chưa có ghi chú cho chủ đề đó, đề nghị dùng skill `ai103-note` trước thay vì tự bịa nội dung.
-2. **Đọc ghi chú** cùng frontmatter (`skill`, `sources`). Phủ đều các bullet trong "Exam scope", không dồn vào một phần.
-3. **Sinh nội dung** vào `docs/study/<tên-ghi-chú>-quiz.md` theo mẫu dưới.
-4. **Báo cáo** ngắn: file, số flashcard, số câu hỏi, các câu `[CẦN XÁC MINH]`.
+1. **Pick the note**: the user names a file; if not, list `docs/study/` and pick the closest match, saying which one you picked. If no note exists for the topic, suggest using the `ai103-note` skill first instead of inventing content.
+2. **Read the note** and its frontmatter (`skill`, `sources`). Cover the bullets in "Exam scope" evenly instead of piling onto one part.
+3. **Generate the content** into `docs/study/<note-name>-quiz.md` using the template below.
+4. **Report** briefly: the file, number of flashcards, number of questions, and any `[NEEDS VERIFICATION]` items.
 
-## Mẫu file
+## File template
 
 ```markdown
 ---
@@ -50,20 +50,20 @@ Source: <link>
 </details>
 ```
 
-(5–10 câu hỏi mỗi file.)
+(5–10 questions per file.)
 
-## Cách ra câu hỏi
+## How to write questions
 
-Đề AI-103 thiên về tình huống ("Bạn cần X, nên chọn gì?"), vì vậy ưu tiên:
+AI-103 questions are scenario-heavy ("You need to X. Which ... should you use?"), so prefer:
 
-- Câu hỏi tình huống và so sánh lựa chọn hơn là câu định nghĩa thuần.
-- Đáp án sai phải hợp lý (dịch vụ/tính năng thật nhưng không phù hợp), không phải đáp án vô lý, để người học phải phân biệt được.
-- Giải thích nêu vì sao từng đáp án sai, vì đó là chỗ học được nhiều nhất.
-- Xáo vị trí đáp án đúng, không dồn vào một chữ cái.
+- Scenario and comparison questions over pure definition questions.
+- Plausible wrong answers (real services or features that do not fit), not absurd ones, so the learner has to tell them apart.
+- Explanations that say why each wrong answer is wrong, because that is where most of the learning happens.
+- Shuffled position of the correct answer; do not cluster it on one letter.
 
-## Quy tắc
+## Rules
 
-- Chỉ hỏi điều ghi chú hoặc nguồn của nó hỗ trợ. Không thêm sự kiện mới từ trí nhớ; nếu cần, tra Microsoft Learn và ghi nguồn, hoặc bỏ câu đó.
-- Mục không chắc ghi `[CẦN XÁC MINH]` ngay trong câu (giữ nguyên dấu này để grep).
-- Viết bằng tiếng Anh, đề kiểu "You need to ... Which ... should you use?" như đề Microsoft; dùng đúng thuật ngữ trên Microsoft Learn.
-- Không sửa `docs/official/` hay ghi chú gốc.
+- Only ask about what the note or its sources support. Do not add new facts from memory; if needed, check Microsoft Learn and cite the source, or drop the question.
+- Mark uncertain items with `[NEEDS VERIFICATION]` right in the question (keep this exact marker so it can be found with grep).
+- Write in English in the style of Microsoft exam questions ("You need to ... Which ... should you use?"), using the exact terms from Microsoft Learn.
+- Do not edit `docs/official/` or the source note.

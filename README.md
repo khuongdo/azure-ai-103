@@ -1,11 +1,11 @@
-# Azure AI-103 — Tài liệu học
+# Azure AI-103 — Study Notes
 
-Ôn thi **AI-103: Developing AI Apps and Agents on Azure** (120 phút, đậu 700/1000).
+Exam prep for **AI-103: Developing AI Apps and Agents on Azure** (120 minutes, passing score 700/1000).
 
-- `docs/official/` — tài liệu gốc từ Microsoft Learn (skills measured, learning paths, links)
-- `docs/study/` — tài liệu học do AI tạo từ nguồn trên
+- `docs/official/` — copies of official material from Microsoft Learn (skills measured, learning paths, links)
+- `docs/study/` — AI-generated study material based on the sources above
 
-| Domain | Tỷ trọng |
+| Domain | Weight |
 |---|---|
 | Plan and manage an Azure AI solution | 25–30% |
 | Implement generative AI and agentic solutions | 30–35% |

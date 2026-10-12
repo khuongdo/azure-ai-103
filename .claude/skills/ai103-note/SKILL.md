@@ -1,25 +1,25 @@
 ---
 name: ai103-note
-description: Tạo ghi chú học bằng tiếng Anh cho kỳ thi Microsoft AI-103 (Developing AI Apps and Agents on Azure) trong docs/study/, bám một mục trong docs/official/skills-measured.md. Dùng skill này bất cứ khi nào user muốn viết, mở rộng hoặc cập nhật ghi chú/tài liệu học cho một domain, skill hoặc chủ đề AI-103 (Foundry, agents, RAG, AI Search, Content Understanding, Speech, Document Intelligence, responsible AI...), kể cả khi họ chỉ nói "viết bài về RAG cho AI-103" hay "làm note phần monitor".
+description: Write English study notes for the Microsoft AI-103 exam (Developing AI Apps and Agents on Azure) in docs/study/, based on one section of docs/official/skills-measured.md. Use this skill whenever the user wants to write, expand or update notes or study material for an AI-103 domain, skill or topic (Foundry, agents, RAG, AI Search, Content Understanding, Speech, Document Intelligence, responsible AI...), even if they only say "write about RAG for AI-103" or "make a note for the monitoring section".
 ---
 
 # ai103-note
 
-Viết ghi chú bằng **tiếng Anh** (kỳ thi bằng tiếng Anh nên người học cần quen đúng thuật ngữ và cách diễn đạt của đề). Hướng dẫn của skill này viết tiếng Việt, nhưng file đầu ra hoàn toàn tiếng Anh.
+Write the notes in **English**: the exam is in English, so the learner needs the exact terms and phrasing used in questions. These instructions are in English too; talk to the user in Vietnamese in chat, as required by the repo `CLAUDE.md`.
 
-Tạo một file ghi chú học trong `docs/study/` cho đúng một mục của study guide. Mục tiêu: người học đọc xong biết khái niệm, biết khi nào chọn cái gì, và biết cách làm bằng Python. Nội dung phải kiểm chứng được, vì đây là tài liệu ôn thi và thông tin sai gây hại hơn thiếu.
+Create one study note file in `docs/study/` for exactly one section of the study guide. Goal: after reading, the learner knows the concepts, knows when to choose what, and knows how to do it in Python. The content must be verifiable, because this is exam material and wrong information does more harm than missing information.
 
-## Quy trình
+## Workflow
 
-1. **Xác định mục**: đọc `docs/official/skills-measured.md`, tìm đúng heading (cấp `####`) và các bullet của nó. Nếu user nói mơ hồ, chọn mục khớp nhất và nói rõ đã chọn mục nào.
-2. **Tìm module liên quan**: đọc `docs/official/learning-paths.md`, chọn các module Learn khớp mục này.
-3. **Lấy nguồn thật**: dùng WebFetch/WebSearch trên `learn.microsoft.com` cho module và tài liệu liên quan. Không viết từ trí nhớ cho các chi tiết dễ đổi (tên SDK, tên class, tham số, giới hạn, SKU, giá, trạng thái GA/Preview), vì Foundry và agent SDK thay đổi nhanh.
-4. **Viết file** theo mẫu dưới đây.
-5. **Báo cáo** ngắn: file đã tạo, mục nào, các chỗ `[CẦN XÁC MINH]`, câu hỏi còn lại.
+1. **Identify the section**: read `docs/official/skills-measured.md`, find the exact heading (`####` level) and its bullets. If the user is vague, pick the closest section and say which one you picked. If the file is missing (it is gitignored), fetch it again from https://aka.ms/AI103-StudyGuide.
+2. **Find related modules**: read `docs/official/learning-paths.md` and pick the Learn modules that match this section.
+3. **Get real sources**: use WebFetch/WebSearch on `learn.microsoft.com` for the modules and related docs. Do not write volatile details from memory (SDK names, class names, parameters, limits, SKUs, prices, GA/Preview status), because Foundry and the agent SDKs change fast.
+4. **Write the file** using the template below.
+5. **Report** briefly: the file created, which section, any `[NEEDS VERIFICATION]` spots, and open questions.
 
-## Mẫu file
+## File template
 
-Tên file: kebab-case tiếng Anh mô tả rõ, ví dụ `build-rag-application.md`.
+File name: descriptive English kebab-case, for example `build-rag-application.md`.
 
 ```markdown
 ---
@@ -51,12 +51,12 @@ retrieved: <YYYY-MM-DD today>
 <Links, each noting what it supports.>
 ```
 
-## Quy tắc nội dung
+## Content rules
 
-- Viết bằng tiếng Anh, văn phong đơn giản, dùng đúng thuật ngữ như trên Microsoft Learn (Foundry, RAG, managed identity, hybrid search...). Dấu đánh dấu không chắc vẫn là `[CẦN XÁC MINH]` để grep thống nhất.
-- Chỉ nói điều nguồn hỗ trợ. Nếu không chắc hoặc không tìm được nguồn, ghi `[CẦN XÁC MINH]` ngay tại chỗ đó thay vì đoán.
-- Ưu tiên tính năng GA. Tính năng Preview thì ghi rõ `(Preview)`, vì exam chủ yếu hỏi GA.
-- Code mẫu: xác minh tên package/class/hàm từ docs. Không chắc thì ghi `[CẦN XÁC MINH]` cạnh dòng đó. Dùng keyless auth (`DefaultAzureCredential`) thay cho key cứng, khớp mục bảo mật của exam.
-- Không chép nguyên văn dài từ Microsoft Learn; diễn đạt lại bằng tiếng Anh của mình và dẫn link.
-- Không sửa gì trong `docs/official/`.
-- Một file = một mục. Mục quá lớn thì tách file.
+- Write in English with simple wording, and use the exact terms as on Microsoft Learn (Foundry, RAG, managed identity, hybrid search...). The marker for uncertainty is always `[NEEDS VERIFICATION]` so it can be found with grep.
+- Say only what the sources support. If unsure or no source is found, write `[NEEDS VERIFICATION]` right at that spot instead of guessing.
+- Prefer GA features. Mark Preview features with `(Preview)`, because the exam mostly asks about GA.
+- Code samples: verify package/class/function names from the docs. If unsure, put `[NEEDS VERIFICATION]` next to that line. Use keyless auth (`DefaultAzureCredential`) instead of hardcoded keys, which matches the security section of the exam.
+- Do not copy long passages from Microsoft Learn; rephrase in your own English and link to the source.
+- Do not edit anything in `docs/official/`.
+- One file = one section. Split sections that are too large.

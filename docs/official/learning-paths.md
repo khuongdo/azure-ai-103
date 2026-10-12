@@ -1,7 +1,7 @@
 ---
 source: https://learn.microsoft.com/en-us/training/courses/ai-103t00
 retrieved: 2026-10-12
-note: Khóa AI-103T00-A (4 ngày). Danh sách module lấy từ Microsoft Learn catalog API.
+note: Course AI-103T00-A (4 days). Module list taken from the Microsoft Learn catalog API.
 ---
 
 # AI-103T00-A: Develop AI apps and agents on Azure — Learning paths & modules
@@ -10,7 +10,7 @@ note: Khóa AI-103T00-A (4 ngày). Danh sách module lấy từ Microsoft Learn 
 
 Path: https://learn.microsoft.com/en-us/training/paths/develop-generative-ai-apps/
 
-| # | Module | Phút |
+| # | Module | Minutes |
 |---|---|---|
 | 1 | [Plan and prepare to develop AI solutions on Azure](https://learn.microsoft.com/en-us/training/modules/prepare-azure-ai-development/) | 60 |
 | 2 | [Select, deploy, and evaluate Microsoft Foundry models](https://learn.microsoft.com/en-us/training/modules/model-catalog-evaluate/) | 63 |
@@ -23,7 +23,7 @@ Path: https://learn.microsoft.com/en-us/training/paths/develop-generative-ai-app
 
 Path: https://learn.microsoft.com/en-us/training/paths/develop-ai-agents-azure/
 
-| # | Module | Phút |
+| # | Module | Minutes |
 |---|---|---|
 | 1 | [Develop AI agents with Microsoft Foundry and Visual Studio Code](https://learn.microsoft.com/en-us/training/modules/develop-ai-agents-azure-vs-code/) | 95 |
 | 2 | [Integrate custom tools into your agent](https://learn.microsoft.com/en-us/training/modules/build-agent-with-custom-tools/) | 53 |
@@ -39,7 +39,7 @@ Path: https://learn.microsoft.com/en-us/training/paths/develop-ai-agents-azure/
 
 Path: https://learn.microsoft.com/en-us/training/paths/develop-language-solutions-azure-ai/
 
-| # | Module | Phút |
+| # | Module | Minutes |
 |---|---|---|
 | 1 | [Analyze text with Azure Language in Foundry Tools](https://learn.microsoft.com/en-us/training/modules/analyze-text-ai-language/) | 46 |
 | 2 | [Develop a text analysis agent with the Azure Language MCP server](https://learn.microsoft.com/en-us/training/modules/develop-text-analysis-agent-language-mcp/) | 52 |
@@ -53,7 +53,7 @@ Path: https://learn.microsoft.com/en-us/training/paths/develop-language-solution
 
 Path: https://learn.microsoft.com/en-us/training/paths/insight-visual-data/
 
-| # | Module | Phút |
+| # | Module | Minutes |
 |---|---|---|
 | 1 | [Develop a vision-enabled generative AI application](https://learn.microsoft.com/en-us/training/modules/develop-generative-ai-vision-apps/) | 43 |
 | 2 | [Generate images with AI](https://learn.microsoft.com/en-us/training/modules/generate-images-azure-openai/) | 33 |
@@ -64,4 +64,4 @@ Path: https://learn.microsoft.com/en-us/training/paths/insight-visual-data/
 | 7 | [Extract data with Azure Document Intelligence](https://learn.microsoft.com/en-us/training/modules/extract-data-with-document-intelligence/) | 71 |
 | 8 | [Create a knowledge mining solution with Azure AI Search](https://learn.microsoft.com/en-us/training/modules/ai-knowldge-mining/) | 68 |
 
-Tổng: 1776 phút (~29.6 giờ) cho 31 module.
+Total: 1776 minutes (~29.6 hours) for 31 modules.
