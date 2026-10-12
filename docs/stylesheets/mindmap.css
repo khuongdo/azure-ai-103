@@ -1,0 +1,3 @@
+/* Markmap mind maps: full width, tall enough for touch use on tablets */
+.markmap { width: 100%; height: 75vh; border: 1px solid var(--md-default-fg-color--lightest); border-radius: 6px; }
+.markmap > svg { width: 100%; height: 100%; }

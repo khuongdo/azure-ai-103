@@ -1,0 +1,5 @@
+site/
+.venv/
+.DS_Store
+# Verbatim copy of Microsoft's study guide: keep local only (repo is public)
+docs/official/skills-measured.md
