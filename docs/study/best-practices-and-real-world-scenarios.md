@@ -23,6 +23,18 @@ Exam questions are written as small real-world problems: "You need to X under co
 
 It connects to the [practice test review](practice-test-1-review.md) (question numbers in brackets) and the [services map](azure-services-overview.md). Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn yet.
 
+## Deep dives
+
+This page is the **summary**. For the mechanisms, worked examples, decision procedures and exam traps, read the deep dives:
+
+| Deep dive | Covers |
+|---|---|
+| [Retrieval, grounding and structured output](deep-dive-rag-retrieval-and-grounding.md) | RAG failure chain, hybrid search and RRF math, semantic ranker, chunking, evaluators, Structured Outputs |
+| [Agent safety and identity](deep-dive-agent-safety-and-identity.md) | Guardrails, four intervention points, Prompt Shields, red teaming, agent identity and token exchange |
+| [Capacity, cost and throttling](deep-dive-capacity-cost-and-throttling.md) | Deployment types, PTU, quota, spillover, 429 handling, cost levers |
+| [Platform, network and reliability](deep-dive-platform-network-and-reliability.md) | Resource model, private networking, BYO data, Cosmos DB sizing, recovery |
+| [Observability and agent lifecycle](deep-dive-observability-and-agent-lifecycle.md) | Tracing, agent evaluators, release process, debugging workflow |
+
 ## How to read an exam scenario
 
 Underline the constraint words. They usually decide the answer:
