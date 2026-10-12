@@ -95,7 +95,7 @@ Example: marketing asks for the blue jacket on a rainy city street, in square an
 4. **Generate variants in batch** (`n`, sizes per channel) through a queue that respects rate limits.
 5. **Check before showing anyone.** Run safety moderation, brand checks (a vision model can verify "logo visible", "no prohibited symbol"), and technical quality.
 6. **Keep a human in the loop** for anything customer-facing. Store the prompt, parameters, model, version and reviewer for every asset.
-7. **Label AI-generated content.** Provenance metadata (C2PA content credentials) is the likely mechanism; verify what the service adds and how your pipeline preserves and checks it. `[NEEDS VERIFICATION]`
+7. **Label AI-generated content.** Microsoft marks output from supported Foundry models with **Content Credentials (C2PA)**, cryptographically signed metadata, and **invisible watermarks**. Image coverage includes `gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`, Microsoft MAI image models and several Flux models; audio and some text models are covered too. Verify with the free **Content Provenance Detection** website or API. Provenance does not prove truth or authorship, and cropping, resizing, format conversion or re-saving can strip the metadata (watermarks may remain), so keep the original files and check provenance at ingest. Where your pipeline edits images, preserve or re-attach the credentials.
 8. **Record costs** per asset and set budgets and quotas.
 
 ## 4. Part B: understanding existing media
@@ -193,4 +193,4 @@ Operational notes: image and video jobs are slow and rate-limited, so use queues
 
 ## Sources and open items
 
-See the frontmatter. Metrics and the pipeline layout are illustrative. `[NEEDS VERIFICATION]` which gpt-image models are GA in your region, C2PA behavior on generated assets, Sora 2 production availability, and current limits for video analyzers.
+See the frontmatter. Metrics and the pipeline layout are illustrative. `[NEEDS VERIFICATION]` which gpt-image models are GA in your region (the image generation page is not consistent) and Sora 2 production availability (it is Preview).

@@ -16,7 +16,7 @@ retrieved: 2026-10-12
 
 # Deep dive: retrieval, grounding and structured output
 
-This page explains **how** the pieces work, so you can reason about new exam scenarios instead of memorizing answers. Examples are illustrative calculations unless a source is cited. Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn.
+This page explains **how** the pieces work, so you can reason about new scenarios instead of memorizing answers. Examples are illustrative calculations unless a source is cited. Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn.
 
 Part of the [best practices overview](best-practices-and-real-world-scenarios.md).
 
@@ -143,7 +143,6 @@ When a bot gives a wrong answer, find **which step broke**. Each has its own too
 | 9 Rerank | Right document is found but ranked 30th | Semantic ranker | Compare rank before and after |
 | 12 Generate | Model adds facts not in the context | Prompt rules, lower temperature, groundedness checks | Groundedness evaluator |
 
-**Exam habit:** read the symptom, name the broken step, then pick the tool for that step.
 
 ---
 
@@ -160,7 +159,14 @@ Two rules from how vectors work:
 - **Index and query must use the same embedding model** (same dimensions). Changing the model means re-embedding everything.
 - Embedding models have an input limit (for example 8,191 tokens for `text-embedding-3-small`), which is one reason to chunk.
 
-Vector search uses nearest-neighbor algorithms: **HNSW** (approximate, fast, the usual choice) and **exhaustive KNN** (exact, scans all vectors, slower). `[NEEDS VERIFICATION]` when to prefer exhaustive; the sample query in Learn sets `exhaustive: true` on one field and `false` on another.
+Vector search uses nearest-neighbor algorithms:
+
+| Algorithm | How it works | Use when |
+|---|---|---|
+| **HNSW** (approximate nearest neighbor) | Builds a hierarchical graph at indexing time; a query walks the graph from coarse to fine levels. All vectors sit in memory, so it uses **vector index size quota** | The usual choice: high recall, low latency, large or volatile data |
+| **Exhaustive KNN** | Brute-force scan of all vectors; exact result; uses **no** vector index quota | **Small to medium** datasets, or when precision matters more than speed; also to build a **ground-truth set to measure the recall of HNSW** |
+
+HNSW tuning parameters: `m` (how many neighbors each node links to), `efConstruction` (candidates considered while building; default **400**, range 100 to 1,000) and `efSearch` (size of the candidate queue at query time). A field indexed for HNSW can still be queried exhaustively with `"exhaustive": true`, but a field indexed as `exhaustiveKnn` cannot use HNSW. Similarity metrics: `cosine` (use this for Azure OpenAI embeddings), `dotProduct` (same as cosine for normalized vectors, slightly faster) and `euclidean`. The vector `@search.score` for cosine is `1 / (1 + cosine_distance)`, so it ranges from 0.333 to 1.0 and always decreases as similarity gets worse. Source: [Vector relevance and ranking](https://learn.microsoft.com/en-us/azure/search/vector-search-ranking).
 
 ### Hybrid search
 One request that contains both a `search` text query and `vectorQueries`. The two run **in parallel** and the engine merges them.
@@ -190,7 +196,6 @@ Things worth knowing from the docs:
 - Never add `orderby`: an explicit sort overrides relevance ranking.
 - Filters and facets work in hybrid queries. With semantic ranker you probably want post-filtering; test both.
 
-**Rule of thumb for the exam:** product codes, names, dates, jargon → keyword matters. Paraphrased natural language, multilingual, images → vectors matter. Both present → hybrid.
 
 ---
 
@@ -250,7 +255,7 @@ Agentic retrieval can build the indexer, skillset and index for you from a **kno
 
 ## 5. Getting good text in: OCR, layout and Content Understanding
 
-- **Text-only PDFs** can be read directly. **Scanned PDFs and images** need OCR first, otherwise there is nothing to chunk. In an Azure AI Search pipeline, OCR is a skill in the skillset. `[NEEDS VERIFICATION]` exact OCR skill name and `detectOrientation` option.
+- **Text-only PDFs** can be read directly. **Scanned PDFs and images** need OCR first, otherwise there is nothing to chunk. In an Azure AI Search skillset the **OCR skill** (`#Microsoft.Skills.Vision.OcrSkill`) reads printed and handwritten text from `.jpeg`, `.jpg`, `.png`, `.bmp` and `.tiff` files and from images embedded in PDFs or Office files. Set the indexer to `imageAction: generateNormalizedImages` so the skill receives `/document/normalized_images/*`; it outputs `text` and `layoutText` (lines, words and bounding boxes). Optional parameters: `defaultLanguageCode` and `lineEnding`. **`detectOrientation` applies only if the legacy OCR v3.2 path is used** (Greek and Serbian Cyrillic); for other languages the Read API is used. Use a **Merge skill** to put OCR text back into the document text at the right position. The skill is bound to Foundry Tools and needs a billable resource beyond 20 documents per indexer per day. Source: [OCR skill](https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-ocr).
 - **Layout matters.** Flattening a table into a run of text destroys the relationship between a row and its header. Layout analysis and Content Understanding keep tables, sections and hierarchy, and describe figures so charts become searchable.
 - **Which service?**
 
@@ -354,21 +359,6 @@ print(response.output_parsed)
 
 Adapted from the Learn Responses API sample (Pydantic with `text_format`). `AdverseEvent` is an invented example.
 
----
-
-## 8. Exam traps for this topic
-
-| Trap | Correct thinking |
-|---|---|
-| "Relevance fixes fabrication" | No: relevance can pass for an invented answer. Use groundedness |
-| "Vectors make keyword search obsolete" | No: exact codes and names still need keyword matching; use hybrid |
-| "Semantic ranker searches the whole index" | No: it reranks the top 50 only |
-| "Add `orderby` to keep relevance" | No: sorting overrides relevance |
-| "Bigger chunks are always better" | No: they blur meaning and may exceed limits |
-| "JSON mode guarantees the schema" | No: only valid JSON; use Structured Outputs |
-| "Few-shot guarantees accurate content" | No: it improves format consistency, not correctness |
-| "Change the embedding model later, no reindex" | No: query and index vectors must come from the same model |
-| "LLMs need vectors" | No: vectors are optional, used for similarity search |
 
 ## Sources
 

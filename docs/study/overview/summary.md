@@ -38,7 +38,7 @@ Study the first two domains first: together they are 55–65% of the exam.
 - **Multi-agent / interoperability**: Microsoft Agent Framework (course module), **A2A** protocol (v1.0 GA).
 - **Lifecycle**: create → test → trace → evaluate → optimize → publish → monitor. Agents are versioned.
 - **RAG**: ground the model with retrieval (Azure AI Search), then evaluate groundedness and relevance.
-- **Tune behavior**: prompt engineering and model parameters. `[NEEDS VERIFICATION]` details not yet researched.
+- **Tune behavior**: be specific and descriptive, put instructions first and repeat them after long content (models show recency bias), give the model an "out" ("say not found"), use few-shot examples, break big tasks into steps, add clear syntax (Markdown or XML), ask for **inline citations**, and provide **grounding data**. Parameters: `temperature` ranges 0 to 2 (low for focused output such as legal text, higher for creative output) and `top_p` is another randomness control; **change one of the two, not both**. These techniques are **not recommended for reasoning models** (gpt-5, o-series), where you control effort with the reasoning-effort setting instead.
 - **SDK**: unified project client `azure-ai-projects` 2.x with `OpenAI()` against one project endpoint.
 
 ## Domain 2: Plan and manage (25–30%)

@@ -125,7 +125,7 @@ Pick thresholds so that the **auto-approved error rate** stays below an agreed l
 - **Throughput:** process asynchronously from a queue; respect service limits and retry throttling with backoff. See [capacity and throttling](../deep-dives/capacity-cost-and-throttling.md).
 - **Monitoring:** track failures by reason, confidence distribution drift (a new vendor layout lowers confidence), and review queue age.
 - **Change management:** treat analyzer changes like code: test on the sample, then promote.
-- **Cost:** extraction uses contextualization tokens and model usage; high-resolution or figure analysis costs more. Check the pricing explainer. `[NEEDS VERIFICATION]` your exact meters.
+- **Cost:** extraction uses contextualization tokens and model usage; high-resolution or figure analysis costs more. Each analyze response includes a `usage` object (for example `documentPagesStandard`, `audioHours`, `videoHours`, `contextualizationTokens` and per-model `tokens`), so you can attribute cost per document. Check the pricing explainer for how each meter is billed.
 
 ## 9. What goes wrong in practice
 
@@ -146,4 +146,4 @@ Pick thresholds so that the **auto-approved error rate** stays below an agreed l
 
 ## Sources and open items
 
-See the frontmatter. Example metrics and the validation rules are illustrative design choices. `[NEEDS VERIFICATION]` orchestration components (queues, functions) for your environment; they are standard Azure choices, not specific to Learn's Content Understanding pages.
+See the frontmatter. Example metrics and the validation rules are illustrative design choices. Queues, functions and storage for orchestration are standard Azure components chosen for the example, not something Learn's Content Understanding pages prescribe.

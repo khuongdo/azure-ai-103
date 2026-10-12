@@ -2,7 +2,7 @@
 
 AI-103 is about solving real business problems with Azure AI. Each page here takes **one realistic problem** and walks through it from end to end: the situation, why it needs these skills, the architecture, how to build it step by step, how to measure quality and safety, how to operate it, and what goes wrong in practice.
 
-These pages are about **doing the job well**. Exam techniques are kept separate. For the mechanisms behind each building block, see the [deep dives](../deep-dives/best-practices-and-real-world-scenarios.md).
+These pages are about **doing the job well**. Exam techniques are kept separate in [Exam tips](../exam-tips/index.md). For the mechanisms behind each building block, see the [deep dives](../deep-dives/best-practices-and-real-world-scenarios.md).
 
 | Problem | What it shows | Main services |
 |---|---|---|

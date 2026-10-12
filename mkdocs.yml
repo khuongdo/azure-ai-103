@@ -46,12 +46,26 @@ nav:
       - Media generation and understanding: study/real-world/multimodal-media-and-marketing.md
       - Multi-agent workflow automation: study/real-world/multi-agent-workflow-automation.md
       - Shipping AI apps to production: study/real-world/shipping-ai-apps-to-production.md
+    - Exam tips:
+      - Overview: study/exam-tips/index.md
+      - Reading exam questions: study/exam-tips/reading-exam-questions.md
+      - Traps and patterns by topic: study/exam-tips/traps-and-patterns-by-topic.md
     - Quizzes:
-      - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
-      - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
-      - Capacity, cost, throttling: study/quizzes/capacity-cost-and-throttling-quiz.md
-      - Platform, network, reliability: study/quizzes/platform-network-and-reliability-quiz.md
-      - Observability and lifecycle: study/quizzes/observability-and-agent-lifecycle-quiz.md
+      - Deep dives:
+        - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
+        - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
+        - Capacity, cost, throttling: study/quizzes/capacity-cost-and-throttling-quiz.md
+        - Platform, network, reliability: study/quizzes/platform-network-and-reliability-quiz.md
+        - Observability and lifecycle: study/quizzes/observability-and-agent-lifecycle-quiz.md
+      - Real-world case studies:
+        - Knowledge assistant: study/quizzes/enterprise-knowledge-assistant-quiz.md
+        - Invoice and contract automation: study/quizzes/document-processing-automation-quiz.md
+        - Customer support agent: study/quizzes/customer-support-agent-quiz.md
+        - Contact center voice and analytics: study/quizzes/contact-center-voice-and-analytics-quiz.md
+        - Multilingual content pipeline: study/quizzes/multilingual-content-pipeline-quiz.md
+        - Media generation and understanding: study/quizzes/multimodal-media-and-marketing-quiz.md
+        - Multi-agent workflow automation: study/quizzes/multi-agent-workflow-automation-quiz.md
+        - Shipping AI apps to production: study/quizzes/shipping-ai-apps-to-production-quiz.md
     - Practice tests:
       - Practice test 1 review: study/practice-tests/practice-test-1-review.md
     - Mind maps:

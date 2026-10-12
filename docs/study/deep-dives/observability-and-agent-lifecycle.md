@@ -134,7 +134,7 @@ This follows the Learn sample. `model_deployment` is the judge model deployment 
 - The **Foundry observability dashboard** (integrated with Application Insights) shows operational metrics, **token consumption, latency, error rates and quality scores** in real time.
 - Set **alerts** when outputs fail quality thresholds or produce harmful content.
 - Watch **HTTP 429 and 503** to detect throttling.
-- Send resource diagnostics to **Log Analytics** for audit with KQL (who called which deployment and when). `[NEEDS VERIFICATION]` exact log categories.
+- Send resource diagnostics to **Log Analytics** for audit with KQL (who called which deployment and when). For Foundry Models the log categories are **RequestResponse** (every inference request and response with status code and latency), **Trace** (detailed debugging of inference calls) and **Audit** (administrative events such as deployments, configuration changes and access control). Metrics are collected automatically; logs must be routed with a **diagnostic setting** (Foundry resource → Monitoring → Diagnostic settings → choose categories and `AllMetrics` → Send to Log Analytics workspace). Roles: **Monitoring Reader** to view metrics, **Monitoring Contributor** to configure diagnostic settings. Allow up to about 15 minutes for data. Collecting logs costs money, so collect only what you need. Useful model metrics include `ModelRequests`, `ModelAvailabilityRate`, `InputTokens`, `OutputTokens`, `TotalTokens`, `TimeToResponse` and, for provisioned deployments, `ProvisionedUtilization` and `TokensCacheMatchRate`. Source: [Monitor model deployments](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/monitor-models).
 - Add **token tracking** in Application Insights and **baseline alerts** in Azure Monitor.
 - Log activity on **jump boxes and build agents**, because they have direct data-plane access.
 - Voice agents: monitoring cards need Application Insights; evaluation supports full-conversation runs only.
@@ -196,7 +196,7 @@ Canary and blue-green releases need a **routing layer** you build. Keep the UI a
 4. **Roll back** by directing traffic to the previous version while fixing.
 5. **Prevent recurrence:** add the failing prompts to the test suite and make evaluation a required check before publish.
 
-Each step uses a different tool, which is exactly how exam questions are built: match the *symptom* to the *tool*.
+Each step uses a different tool: match the *symptom* to the *tool*.
 
 | Symptom | Reach for |
 |---|---|
@@ -207,21 +207,6 @@ Each step uses a different tool, which is exactly how exam questions are built: 
 | "Is it vulnerable to attacks?" | AI red teaming agent |
 | "Why is it slow or expensive?" | Trace latency and token breakdown, dashboard |
 
----
-
-## 7. Exam traps
-
-| Trap | Correct thinking |
-|---|---|
-| "Run evaluation once before launch" | Evaluate continuously in production and after every meaningful change |
-| "Evaluators are deterministic tests" | Most are LLM-judged and need a judge deployment |
-| "Edit the agent in place" | Versions are immutable; save a new version |
-| "Traces are safe to log everything" | They can capture sensitive data; redact and restrict access |
-| "Task Adherence = Task Completion" | Adherence = followed rules; Completion = finished the job |
-| "Tool Call Success proves correct behavior" | It only proves the call did not error |
-| "Let models auto-upgrade" | Pin and validate first |
-| "Publishing keeps permissions" | New identity; reassign |
-| "Foundry provides canary releases" | You must build the routing layer |
 
 ## Sources
 

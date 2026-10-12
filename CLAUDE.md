@@ -18,8 +18,9 @@ docs/
     ├── index.md          # Study hub: explains the folders and pairs deep dives with quizzes
     ├── overview/         # One-page summary, Azure services map
     ├── deep-dives/       # Topic notes: mechanisms, worked examples, decision guides, traps
-    ├── real-world/       # End-to-end case studies of real problems (no exam tips; those go elsewhere)
-    ├── quizzes/          # <topic>-quiz.md: flashcards and scenario questions for a deep dive
+    ├── real-world/       # End-to-end case studies of real problems (no exam tips; those go in exam-tips/)
+    ├── exam-tips/        # Exam technique only: reading questions, clue words, traps and patterns by topic
+    ├── quizzes/          # <topic>-quiz.md: flashcards and scenario questions for a deep dive or a real-world case study (case-study quizzes add design questions)
     ├── practice-tests/   # Reviews of full practice tests
     └── mind-maps/        # Markmap pages (mindmap.md embeds the *-view.html files)
 ```

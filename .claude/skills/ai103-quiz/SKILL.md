@@ -53,6 +53,8 @@ Source: <link>
 
 (5–10 questions per file.)
 
+For notes in `docs/study/real-world/`, add a final section `## Design questions` with two open questions ("Design X for situation Y") and a collapsed **model answer and checklist** for each, so the learner writes their own design before comparing. Keep flashcards and scenario questions as above.
+
 ## How to write questions
 
 AI-103 questions are scenario-heavy ("You need to X. Which ... should you use?"), so prefer:

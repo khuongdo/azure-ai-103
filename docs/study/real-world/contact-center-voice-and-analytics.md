@@ -94,7 +94,7 @@ Example: a caller says, *"Hi, is there an outage in Hanoi today?"*
 4. **Pick the voice and persona** from standard voices; custom voice and avatar need limited-access approval.
 5. **Write voice-specific instructions.** Short sentences, confirm numbers by repeating them, no markdown, no long lists, offer to transfer. Phone calls are low-bandwidth; the agent must lead.
 6. **Connect tools** with authorization enforced in the tool, using the caller's verified identity (for example after a verification step), not the model's guess.
-7. **Add the telephony channel.** Teams Phone extensibility (needs Azure Communication Services and Event Grid) or a Twilio connection; direct SIP is not offered as a supported customer flow in the docs. `[NEEDS VERIFICATION]` current channel options and preview status.
+7. **Add the telephony channel.** Teams Phone extensibility (needs Azure Communication Services and Event Grid) or a Twilio connection; direct SIP is not offered as a supported customer flow in the docs. Voice-based agents and related telephony, avatar and WebRTC capabilities are in preview, so check the current status before committing to production.
 8. **Define handoff.** Transfer when the caller asks, when verification fails, when confidence is low, or on repeated misunderstanding. Pass a summary to the human.
 9. **Test with real recordings** and noisy conditions, accents and interruptions; measure latency end to end.
 10. **Pilot** with a small percentage of calls and a quick opt-out to a person.
@@ -160,6 +160,14 @@ An alternative one-step route uses `prebuilt-callCenter` in Content Understandin
 6. **Close the loop.** Route flagged calls to QA; use confirmed labels to improve prompts and thresholds.
 7. **Run in batch** with retries and idempotency, and dashboards for pipeline health.
 
+**Batch transcription options that matter for calls** (from Learn):
+
+- **Diarization** separates speakers on **mono** recordings (it is not available for stereo). Set `diarizationEnabled: true` for two speakers; for three or more also set `diarization` with the minimum and maximum speaker count (the maximum must be below 36). Audio with diarization can be at most **240 minutes per file**. Because diarization works only on mono, recording agent and caller on **separate stereo channels** (channels 0 and 1 are transcribed by default) is the other way to know who spoke.
+- **Fast transcription** is the alternative for files under 2 hours and 300 MB when you need consistent speed.
+- Set `timeToLiveHours` (6 hours to 31 days; 48 hours recommended when you consume results directly) or delete jobs after you fetch results, and put `destinationContainerUrl` **inside** `properties` to store results in your own container (misplacing it silently writes to a Microsoft-managed container).
+- **Language identification** needs 2 to 10 candidate locales and works only with base models; if you need both language identification and a custom model, use real-time recognition instead of batch.
+- Use **webhooks** instead of polling; your endpoint must return the `validationToken` as plain text and allow inbound traffic from the `CognitiveServicesManagement` service tag.
+
 ### 8. Quality plan
 
 | Output | Measure |
@@ -192,4 +200,4 @@ Prioritize **PII recall**; tune for completeness over elegance. Re-measure when 
 
 ## Sources and open items
 
-See the frontmatter. Volumes, targets and the pipeline layout are illustrative. `[NEEDS VERIFICATION]` telephony channel availability, diarization options for batch transcription, and exact Language summarization options for call-center transcripts.
+See the frontmatter. Volumes, targets and the pipeline layout are illustrative. Language summarization options for call-center transcripts are described on the Language overview page (call center summarization is a legacy-but-supported capability).

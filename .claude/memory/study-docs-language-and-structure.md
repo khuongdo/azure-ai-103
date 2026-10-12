@@ -11,7 +11,7 @@ metadata:
 The user is studying for the Microsoft AI-103 exam (taken in English) and keeps a public repo with a MkDocs Material site (https://khuongdo.github.io/azure-ai-103/) for reading on an iPad.
 
 - **Chat language: Vietnamese.** Code, commit messages, config, and all study content under `docs/study/` are **English** (the exam is in English). This is also recorded in the repo `CLAUDE.md`.
-- **Exam tips are a separate topic.** Real-world pages should be about doing the job well; the existing "Exam traps" sections inside deep dives were offered to be moved to their own `exam-tips/` section but the user has not decided yet.
+- **Exam tips are a separate topic.** They live only in `docs/study/exam-tips/` (reading questions, patterns, traps by topic). Do not put "exam traps", "exam angle" or clue-word tables inside deep dives or real-world pages; those are about knowledge and doing the job well.
 - **Repo is public:** never commit verbatim copies of Microsoft docs (`docs/official/skills-measured.md` is gitignored).
 - The user prefers to confirm commits and pushes: they say "push" or "commit push" explicitly each time; ask before committing.
 - Treat unverified facts honestly: mark `[NEEDS VERIFICATION]`, cite Microsoft Learn pages, and label illustrative numbers as examples.

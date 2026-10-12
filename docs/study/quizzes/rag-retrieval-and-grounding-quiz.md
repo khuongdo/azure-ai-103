@@ -165,7 +165,7 @@ Source: deep dive section 6 (evaluator patterns), based on https://learn.microso
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Scanned pages are images with no text, so nothing can be chunked or embedded until OCR extracts it. `[NEEDS VERIFICATION]` exact OCR skill name and options.
+**Correct: D.** Scanned pages are images with no text, so nothing can be chunked or embedded until OCR extracts it. In an indexer this is the OCR skill (`#Microsoft.Skills.Vision.OcrSkill`) working on normalized images.
 **Incorrect:** A — overlap cannot create missing text; B — reranking cannot rank content that was never indexed; C — vectors need text to embed.
 Source: https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search
 

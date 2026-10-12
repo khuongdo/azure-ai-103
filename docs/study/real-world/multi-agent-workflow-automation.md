@@ -126,7 +126,11 @@ result = await agent.run("What is the laptop refresh policy for new hires?")
 print(result)
 ```
 
-Use a managed identity credential in production rather than the Azure CLI credential used for local development. Workflow wiring (sequential, concurrent, handoff, group chat) is described in the Agent Framework workflow docs. `[NEEDS VERIFICATION]` exact orchestration class names and checkpoint APIs before writing production code.
+Use a managed identity credential in production rather than the Azure CLI credential used for local development.
+
+**Orchestration patterns in Agent Framework workflows** (Learn lists five): **Sequential** (agents run one after another), **Concurrent** (agents run in parallel), **Handoff** (control passes between agents based on context), **Group chat** (agents collaborate in a shared conversation; the orchestrator can pick speakers by round-robin, by prompt, or by custom logic) and **Magentic** (a manager agent builds a task ledger and coordinates specialists, suited to open-ended problems). Python offers builders such as `SequentialBuilder` and `ConcurrentBuilder` that take a list of participants; builder syntax differs by SDK.
+
+**Checkpointing:** workflows run in **supersteps** and a checkpoint is saved at the end of each one, capturing executor state, pending messages, pending requests and responses, and shared state. Storage options are `InMemoryCheckpointStorage` (tests), `FileCheckpointStorage` (single machine) and `CosmosCheckpointStorage` (production, with managed identity). Resume with `workflow.run(checkpoint_id=...)`. A resumed workflow must keep the same topology and executor identities. Checkpoint storage is a **trust boundary**: never load checkpoints from untrusted sources, and note that the file and Cosmos stores use restricted pickle deserialization with an allow list of types. Sources: [orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/), [checkpoints](https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints).
 
 5. **Insert approvals** where an action is hard to reverse: the workflow pauses, sends an approval request with the proposed action and evidence, and resumes only on approval. Enforce limits in code.
 6. **Give every agent its own identity and least privilege.** Agents that only draft text need no write access. For system actions use the agent identity with narrow roles; for user-specific data use on-behalf-of. See [agent identity](../deep-dives/agent-safety-and-identity.md).
@@ -172,4 +176,4 @@ Use a managed identity credential in production rather than the Azure CLI creden
 
 ## Sources and open items
 
-See the frontmatter. The onboarding design extends the example in Learn's toolbox overview; approval node placement and metrics are illustrative. `[NEEDS VERIFICATION]` Agent Framework orchestration APIs, hosted-agent packaging details, and A2A authentication specifics for your tenant.
+See the frontmatter. The onboarding design extends the example in Learn's toolbox overview; approval node placement and metrics are illustrative. `[NEEDS VERIFICATION]` hosted-agent packaging details and A2A authentication specifics for your tenant; Agent Framework status labels (GA or preview) were not stated on the pages read, and the Go SDK is in public preview.

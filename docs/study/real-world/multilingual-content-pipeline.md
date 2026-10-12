@@ -44,7 +44,7 @@ A medical-device manufacturer sells in 30 countries. Product manuals, safety not
 | **Custom Translator** | Train a **customized model** for domain language, terminology and style; phrase or sentence **dictionaries** | Separate portal and training effort |
 | **Document translation (batch, async)** | Many or large files; preserves structure and format; glossaries; auto language detection | Requires Blob containers and storage authorization |
 | **Document translation (synchronous)** | One document, returned directly; optional glossary | One file at a time; no storage account needed; custom-domain endpoint required |
-| **LLM-powered translation flow** (your own prompt on a Foundry model) | Flexible tone, context, formatting instructions, domain rules | You own consistency, cost, evaluation and safety; no built-in layout preservation `[NEEDS VERIFICATION]` |
+| **LLM-powered translation flow** (your own prompt on a Foundry model) | Flexible tone, context, formatting instructions, domain rules | You own consistency, cost, evaluation and safety; layout preservation is your job (Document Translation is the Learn-documented service that preserves format) |
 | **Speech translation (Azure Speech)** | Speech-to-speech and speech-to-text, real time | Separate from text; consider latency |
 
 **Rule of thumb:** use Translator for **volume, formats and consistency**; use an LLM flow where **context, tone or reasoning** matter (marketing copy, nuanced support replies), often *after* or *beside* Translator, with terminology rules in the prompt. Many pipelines combine them.
@@ -112,14 +112,14 @@ Example: `infusion-pump-manual.docx` must go from English into German, French an
 | Safety-critical meaning | Back-translation or second reviewer for Tier 1; any numeric or negation difference is a defect |
 | Regression | Fixed test set per language re-run after any change (glossary, model, API version) |
 
-Automatic metrics can rank systems but do not replace bilingual review for high-stakes content. `[NEEDS VERIFICATION]` which automatic scoring approaches Microsoft recommends for Translator customizations.
+Automatic metrics can rank systems but do not replace bilingual review for high-stakes content. Which automatic scoring Microsoft recommends for Translator customizations was not found in the pages read, so rely on bilingual review plus your own regression set.
 
 ## 7. Operating it
 
 - **Throughput and limits:** respect document translation request limits (see the service limits page); batch large jobs and monitor status.
 - **Cost:** Translator is billed by characters (documents) and per image for image files; LLM-based steps are billed by tokens. Translate once and cache; avoid re-translating unchanged content (hash source segments).
 - **Versioning:** keep glossary and custom-model versions; record which version produced each translation so you can audit and redo.
-- **Data protection:** confidential documents stay in your storage; restrict access; delete temporary containers; use private networking where required. `[NEEDS VERIFICATION]` private endpoint support for Translator in your region.
+- **Data protection:** confidential documents stay in your storage; restrict access; delete temporary containers. Translator supports virtual networks in all public-cloud regions: once you enable "selected networks and private endpoints" you must call the **custom endpoint** (not the global `api.cognitive.microsofttranslator.com`) and you cannot authenticate with an access token. With service endpoints the **Custom Translator portal is not accessible** but the REST API still works. The region of the Translator resource decides where document content is processed and temporarily stored.
 - **Language coverage:** check language support for the specific feature (text, document, custom) per language pair; not all combinations support all features.
 
 ## 8. What goes wrong in practice
@@ -143,4 +143,4 @@ Automatic metrics can rank systems but do not replace bilingual review for high-
 
 ## Sources and open items
 
-See the frontmatter. Tiers, checks and metrics are an illustrative design. `[NEEDS VERIFICATION]` LLM-flow layout handling, private networking options for Translator, and current document translation limits.
+See the frontmatter. Tiers, checks and metrics are an illustrative design. Current document translation limits are on the Translator service limits page.

@@ -91,7 +91,23 @@ Work top to bottom and stop at the first yes.
 If capacity is short, the **deployment fails**. Check first in the portal or with the model capacities API; try fewer PTUs, another region, or retry later. Deleting or scaling down releases capacity back to the pool, with no promise you can get it back.
 
 ### Sizing (concept)
-Three inputs: **request shape** (requests per minute, average input tokens, average output tokens), the model's **output-to-input ratio** (output tokens cost more capacity than input tokens), and your **cache rate** (cached input tokens do not consume PTU capacity). These are turned into one normalized tokens-per-minute figure, then divided by the model's **input TPM per PTU**. The portal has a capacity calculator. `[NEEDS VERIFICATION]` exact formulas on the sizing page.
+Three inputs: **request shape** (peak requests per minute, average input tokens, average output tokens), the model's **output-to-input ratio** (output tokens cost more capacity than input tokens), and your **cache rate** (the share of input tokens served from the prompt cache). The documented formulas:
+
+```
+Input TPM        = Peak RPM × average prompt size
+Output TPM       = Peak RPM × average response size
+Normalized TPM   = Input TPM × (1 − cache rate)  +  output-to-input ratio × Output TPM
+PTUs required    = Normalized TPM ÷ Input TPM per PTU     (then round up to the deployment increment)
+```
+
+**Worked example from Learn** (`gpt-5.2`, Data Zone Provisioned: Input TPM per PTU = 3,400, ratio = 8, scale increment = 5): 1,000 RPM, 200-token prompts, 20-token responses.
+
+| Cache rate | Input TPM | Output TPM | Normalized TPM | PTUs | Rounded up |
+|---|---|---|---|---|---|
+| 0% | 200,000 | 20,000 | 200,000 + 8 × 20,000 = 360,000 | 105.88 | **110** |
+| 50% | 100,000 | 20,000 | 100,000 + 8 × 20,000 = 260,000 | 76.47 | **80** |
+
+Reading the example: output tokens dominate (160,000 of the 360,000 normalized tokens come from only 20,000 output tokens), and caching removes cached input tokens from the calculation entirely for models that do not use normalized token accounting. Other facts: global and data zone provisioned deployments have a **minimum of 15 PTUs** and **scale in steps of 5** for most current models; **regional provisioned** minimums are larger (for example 50 PTUs and steps of 50 for several models). Newer models (the GPT-6 family) use **normalized token accounting** where cached input and cache writes consume capacity at model-specific weights, so the simple "cached tokens are free" rule does not apply to them. The Foundry portal has a **capacity calculator**, and for the best accuracy you should benchmark a deployment against representative traffic. Source: [Determine PTU sizing](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing).
 
 ### Spillover
 When a provisioned deployment is full and returns a non-200 (such as **429**), **spillover** redirects the overflow to a **standard deployment in the same Foundry resource**. Enable it for all requests or per request with the `x-ms-spillover-deployment` header. Azure OpenAI models support it; DeepSeek and Llama deployments from other providers currently do not.
@@ -157,7 +173,7 @@ def call_with_backoff(client: OpenAI, max_attempts: int = 5, **request):
             delay *= 2
 ```
 
-The shape follows the Learn guidance (exponential backoff plus `Retry-After`); the jitter is a common additional practice. `[NEEDS VERIFICATION]` that the SDK exposes `retry-after` exactly as shown for your SDK version.
+The shape follows the Learn guidance (exponential backoff plus `Retry-After`); the jitter is a common additional practice, and how the `retry-after` header is exposed depends on your SDK, so confirm it for your version. The **Provisioned Utilization** metric (PTUs consumed ÷ PTUs deployed × 100) tells you when a provisioned deployment is at or above 100% and therefore returning 429.
 
 **Related symptoms** from the troubleshooting table:
 
@@ -204,22 +220,6 @@ Model deployments are not automatically load-balanced or failed over by Foundry.
 - Keep models in the **same region as the agents** to cut latency.
 - Production SLOs need **Provisioned**: shared consumption is best effort and subject to noisy neighbors.
 
----
-
-## 8. Exam traps
-
-| Trap | Correct thinking |
-|---|---|
-| "Provisioned = cheaper" | It is cheaper only at sustained high utilization; it is billed even when idle |
-| "I have PTU quota, so I can deploy" | Quota is not capacity; deployment can fail |
-| "Buy a reservation first" | Create the deployment, confirm capacity, then reserve |
-| "Scale PTUs with the traffic curve" | Capacity may not return; hourly billing at high use costs more |
-| "Retry immediately on 429" | Backoff and honor `Retry-After`; ramp gradually |
-| "Standard is the fix for residency" | Standard = geography; Data Zone = zone; Global = anywhere |
-| "Batch for a chatbot" | Batch has no real-time SLA |
-| "Foundry will fail over my deployments" | Add a gateway such as API Management |
-| "A bigger model is safer" | Slower and costlier; choose the smallest that meets quality |
-| "Quota is per resource" | For onboarded models it is per subscription pool; others per region, subscription and model |
 
 ## Sources
 

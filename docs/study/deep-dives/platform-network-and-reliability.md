@@ -13,7 +13,7 @@ retrieved: 2026-10-12
 
 # Deep dive: designing the platform (structure, network, data, recovery)
 
-A common exam story: "Three teams will build agents. Security requires no public endpoints, no secrets, and customer-owned data. How do you set it up?" This page explains the building blocks and the reasons behind each choice.
+A typical situation: "Three teams will build agents. Security requires no public endpoints, no secrets, and customer-owned data. How do you set it up?" This page explains the building blocks and the reasons behind each choice.
 
 Part of the [best practices overview](best-practices-and-real-world-scenarios.md). Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn.
 
@@ -131,7 +131,7 @@ A **network-secured standard setup requires all three**. Choosing:
 | **Basic setup** | Platform-managed storage; compatible with Assistants | Getting started; no ownership requirement |
 | **Standard setup** | Your Storage, Cosmos DB, AI Search | Compliance, data residency, CMK, private networking |
 
-Capacity planning for Cosmos DB (a classic exam calculation): each project needs **3 to 5 containers of 1,000 RU/s each**; 3 are created at provisioning and up to 2 more appear when Responses API agents are used. So:
+Capacity planning for Cosmos DB (a worked calculation): each project needs **3 to 5 containers of 1,000 RU/s each**; 3 are created at provisioning and up to 2 more appear when Responses API agents are used. So:
 
 ```
 2 projects, both with Responses API agents:  5 containers × 1,000 RU/s × 2 = 10,000 RU/s
@@ -153,10 +153,32 @@ Roles on BYO resources: give the Foundry account's managed identity access (for 
 | Model deployment failover | Foundry does **not** load-balance or fail over deployments | Gateway such as **API Management** (routing, health checks, circuit breaking); Data Zone/Global types; provisioned **spillover** |
 | Standard deployments | Single region, no availability-zone support | Use Global or Data Zone types where residency allows |
 | Accidental deletion | State can be lost catastrophically | **Delete locks** on Agent Service dependencies |
-| Regional outage | The reference architecture is single-region; a regional outage means loss of service | Plan multi-region separately `[NEEDS VERIFICATION]` |
+| Regional outage | **Foundry itself does not provide automatic failover or disaster recovery.** You and Microsoft share responsibility: Microsoft runs the control plane and agent runtime; you own the durability of Cosmos DB, AI Search and Storage in standard setup | Cosmos DB **read replica in a failover region with service-managed failover**; GZRS storage; rebuild from code (see the recovery checklist below) |
 | Recreating a project | Role assignments tied to the old identity | User-assigned managed identity reused across recreations |
 
 Isolate Agent Service dependencies from other workloads' resources so one workload's failure or recovery does not affect another.
+
+### Recovery checklist (from Learn's resiliency guidance)
+
+Configure these **before** an incident; the recovery steps assume they exist.
+
+| Resource | Setting | Why |
+|---|---|---|
+| Foundry project | **User-assigned** managed identity, not system-assigned | Restores access to dependencies without reapplying role assignments |
+| Foundry Agent Service | **Standard** agent setup | Basic mode has almost no recovery options for resource loss |
+| Azure Cosmos DB | **Continuous backup** with point-in-time restore (7, 30 or 35-day retention tiers; point-in-time restore is unavailable unless enabled beforehand) | Recover the `enterprise_memory` database, containers, or the whole account |
+| Azure Cosmos DB | A **unique, organization-specific account name** | A restore creates a new account with the original name; the restore fails if the name is taken |
+| Azure Cosmos DB | Read replication to the failover region + **service-managed failover** | Lets the service switch the write region in a prolonged regional outage |
+| Azure AI Search | A unique, organization-specific service name | A restore creates a new service with the original name |
+| Azure Storage | **GZRS** | Allows customer-managed failover to a predetermined region |
+| Foundry account | Explicit connection to **Microsoft Purview** | Data continuity for compliance (for example eDiscovery) after thread data is lost |
+| All critical resources | **Delete locks** (need Owner to create) plus Azure Policy `denyAction` | Locks do not protect data inside containers, indexes or individual agents and threads |
+
+Also dedicate Cosmos DB, AI Search and Storage **exclusively** to one workload's Agent Service (single responsibility), and use zone-redundant configurations (they protect against zone failure, not regional outage or human error). Even built-in roles such as Foundry User can delete operational data through the Agent Service APIs, and no built-in AI role is read-only for those operations, so grant standing delete permissions to no one in production. Source: [High availability and resiliency](https://learn.microsoft.com/en-us/azure/foundry/how-to/high-availability-resiliency).
+
+### Encryption with customer-managed keys
+
+Foundry supports **customer-managed keys** held in Azure Key Vault or Azure Managed HSM. You create or import a key, grant the Foundry resource's managed identity permission to use it (for Key Vault with Azure RBAC, the **Key Vault Crypto User** role), then enable CMK on the resource; you can do this when creating the resource or on an existing one. For agents: **prompt agents support CMK only with bring-your-own (customer-managed) storage**, so configure CMK separately on Cosmos DB, Storage and AI Search; **hosted agents are only partly covered** because the `$HOME` filesystem is on platform-managed storage that is not encrypted with CMK. Source: [Customer-managed keys in Foundry](https://learn.microsoft.com/en-us/azure/foundry/concepts/customer-managed-keys).
 
 ---
 
@@ -185,22 +207,6 @@ A defensible design:
 6. **Reliability:** zone-redundant Cosmos DB and storage, 3+ search replicas, agents as code, continuous backup, delete locks, APIM gateway for model routing, provisioned throughput with spillover for production SLOs.
 7. **Operations:** IaC deploy from self-hosted runners in the VNet; evaluation gates; diagnostics to Log Analytics.
 
----
-
-## 8. Exam traps
-
-| Trap | Correct thinking |
-|---|---|
-| "Private endpoint on Foundry makes everything private" | Storage, Search and Cosmos DB need their **own** private endpoints |
-| "Disable public access, done" | Also need private DNS zones and a delegated subnet |
-| "Share one agent subnet across resources" | One dedicated subnet per Foundry resource |
-| "Foundry resource can be in a different region from the VNet" | Must be the same region |
-| "Hub + projects" for a new design | Foundry resource + projects |
-| "Keys are fine in Key Vault" | Prefer Entra and managed identities; remove keys |
-| "Foundry backs up my agents" | It does not; use code and Cosmos DB continuous backup |
-| "Foundry load-balances models" | It does not; add a gateway |
-| "Grant the caller roles only" | The project managed identity needs runtime roles too |
-| "Create projects in the portal in production" | Use IaC so network controls apply |
 
 ## Sources
 

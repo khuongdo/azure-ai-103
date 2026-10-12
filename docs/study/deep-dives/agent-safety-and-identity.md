@@ -35,7 +35,7 @@ A filter that only checks the user's first message handles case 1 at best. Cases
 
 ## 2. Guardrails, controls and intervention points
 
-**Vocabulary (exam favorite):**
+**Vocabulary:**
 
 - **Guardrail** = a named collection of controls. It can be assigned to one or many models and agents.
 - **Control** = one rule made of three parts: a **risk** to detect + an **intervention point** to scan + an **action** to take.
@@ -149,7 +149,6 @@ Other practices from the reference architecture:
 - The **AI red teaming agent** simulates attacks using Microsoft's **PyRIT** framework (jailbreak, prompt injection and more) and scores results by risk category (hate, violence and so on). It is best used with human review.
 - Run it **before release** and on a **schedule after release** ("scheduled red teaming"). Pair it with continuous evaluation of sampled production traffic.
 
-Exam logic: "find vulnerabilities proactively" → red teaming agent; "measure quality on a known set" → dataset evaluation.
 
 ---
 
@@ -207,21 +206,6 @@ In the Entra admin center (Agent ID) you can inventory all agent identities and 
 
 Rules of thumb: keys bypass RBAC (use Entra); publishing needs at least Project Manager on the Foundry resource; do not use "Cognitive Services" roles (except Usages Reader for quota) or **Azure AI Developer** for Foundry projects; agent-scope role assignments only affect access to that agent's endpoints.
 
----
-
-## 8. Exam traps
-
-| Trap | Correct thinking |
-|---|---|
-| "Put the rule in the system prompt" | Enforce in the tool and with permissions; prompts can be bypassed |
-| "The model guardrail protects the agent" | The agent's guardrail overrides it |
-| "User-input filter stops all injection" | Indirect attacks arrive via tool responses and documents |
-| "Agent works in test, fails after publish" | New distinct identity with no roles: reassign |
-| "Give the managed identity the storage role" | The agent identity needs it |
-| "Use an API key for the MCP server" | Prefer agent identity (federated, no secret) where supported |
-| "Spotlighting for agents" | Not available for agents; models via Chat Completions only |
-| "Guardrails scan every tool" | Only tools that support moderation |
-| "Run red teaming once" | Before release and on a schedule |
 
 ## Sources
 

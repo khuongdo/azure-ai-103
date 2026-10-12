@@ -104,7 +104,7 @@ Example: a developer edits the support agent's instructions so it confirms the o
 ### Observability
 14. **Tracing to Application Insights** with consistent span attributes; redact sensitive content; restrict access to traces like production logs.
 15. **Dashboards and alerts:** latency, errors (429 and 503 separately), tokens and cost, quality scores from continuous evaluation, safety detections, tool failure rates.
-16. **Diagnostic logs** to Log Analytics for audit of who called which deployment. `[NEEDS VERIFICATION]` log categories for your resource type.
+16. **Diagnostic logs** to Log Analytics for audit of who called which deployment. Foundry Models categories are **RequestResponse**, **Trace** and **Audit**; set them up per resource with a diagnostic setting and allow about 15 minutes for data.
 17. **Feedback loop:** user ratings and escalations feed the golden dataset.
 
 ### Rollout and recovery
@@ -153,4 +153,4 @@ Example: a developer edits the support agent's instructions so it confirms the o
 
 ## Sources and open items
 
-See the frontmatter. The pipeline, checklist and timeline are a synthesis of the cited Microsoft guidance and general delivery practice, not a Microsoft-prescribed process. `[NEEDS VERIFICATION]` CI/CD details for your tooling (Azure DevOps, GitHub Actions, `azd`), log categories, and multi-region guidance.
+See the frontmatter. The pipeline, checklist and timeline are a synthesis of the cited Microsoft guidance and general delivery practice, not a Microsoft-prescribed process. Specific CI/CD tooling (Azure DevOps, GitHub Actions, `azd`) is your choice and is not covered by the pages cited. Multi-region guidance is in the [platform deep dive](../deep-dives/platform-network-and-reliability.md).

@@ -20,7 +20,7 @@ Create one study note file under `docs/study/` for exactly one section of the st
 
 ## File template
 
-File name: descriptive English kebab-case, for example `build-rag-application.md`. Save it in the folder that matches its purpose: topic notes go in `docs/study/deep-dives/`, summaries and service maps in `docs/study/overview/`, and end-to-end case studies of real business problems in `docs/study/real-world/` (problem, why it is an AI-103 problem, architecture, build steps, quality plan, operations, failure modes, variations; keep exam tips out of these pages).
+File name: descriptive English kebab-case, for example `build-rag-application.md`. Save it in the folder that matches its purpose: topic notes go in `docs/study/deep-dives/`, summaries and service maps in `docs/study/overview/`, and end-to-end case studies of real business problems in `docs/study/real-world/` (problem, why it is an AI-103 problem, architecture, build steps, quality plan, operations, failure modes, variations; keep exam tips out of these pages). Exam tips, clue-word patterns and "traps" tables belong only in `docs/study/exam-tips/`, never inside deep dives or real-world pages.
 
 ```markdown
 ---

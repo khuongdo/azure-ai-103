@@ -92,7 +92,7 @@ Exam-style rules of thumb:
 - Start with **Global Standard** unless you have a data residency, reserved-throughput or batch reason.
 - **Provisioned** = lower, more consistent latency (PTUs). **Standard** types are best-effort and can show latency variance at high steady volume.
 - Data at rest stays in the designated geography; **inference** location depends on the type (global, data zone, geography).
-- Quota is a limit per subscription, region and model (tokens per minute). Raise it with a quota request, or use another region or deployment type. `[NEEDS VERIFICATION]` exact TPM and RPM terminology and the Foundry Models quotas page.
+- Quota is a limit per subscription, region and model, measured in **tokens per minute (TPM)** and **requests per minute (RPM)**; for models onboarded to subscription-level quota management it is a shared pool (see the [capacity deep dive](../deep-dives/capacity-cost-and-throttling.md)). Raise it with a quota request, move quota between deployments, or use another region or deployment type.
 - **Azure Policy** can block a deployment type by denying `sku.name` on `Microsoft.CognitiveServices/accounts/deployments`.
 - "Instant access" (Preview) lets you call supported models by name without creating a deployment.
 - Catalog: more than 10,000 models from Microsoft, OpenAI, Anthropic, Meta and others.
@@ -116,16 +116,16 @@ Building blocks and facts:
 - Lifecycle: create → test (playground) → trace → evaluate → optimize (agent optimizer, Preview) → publish → monitor. Agents are automatically versioned; publishing promotes an agent to a managed resource with a stable endpoint.
 - Distribution: Microsoft Teams, Microsoft Copilot, Entra Agent Registry. Protocols: OpenResponses, Activity, Invocations, and **A2A** (v1.0 GA, v0.3 Preview).
 - Enterprise: dedicated Entra **agent identity**, private networking (VNet) for prompt agents, BYO VNet for hosted agents, RBAC, content filters, bring-your-own resources (Storage, AI Search, Cosmos DB for conversation state).
-- Multi-agent orchestration with Microsoft Agent Framework appears in the course (see the [AI-103T00 course](https://learn.microsoft.com/en-us/training/courses/ai-103t00)). `[NEEDS VERIFICATION]` Agent Framework API names before writing code samples.
+- Multi-agent orchestration with Microsoft Agent Framework appears in the course (see the [AI-103T00 course](https://learn.microsoft.com/en-us/training/courses/ai-103t00)). Its workflows offer five built-in orchestrations (Sequential, Concurrent, Handoff, Group chat, Magentic) and checkpointing at the end of each superstep. Foundry's visual workflows (Preview) are retiring on December 1, 2026 in favor of Agent Framework.
 
 ## 6. Azure AI Search
 
 - **Classic search**: one index, one request, no LLM planning. **Agentic retrieval**: a **knowledge base** with one or more **knowledge sources**, optional LLM for query planning and answer synthesis; does planning, subqueries, parallel retrieval, semantic reranking, merging. Agentic retrieval has region restrictions and is GA with some preview capabilities.
-- Query types: full-text, **vector**, **hybrid** (full-text + vector), **multimodal**. Semantic ranker for reranking `[NEEDS VERIFICATION]` exact feature names and tier requirements.
+- Query types: full-text, **vector**, **hybrid** (full-text + vector), **multimodal**. The **semantic ranker** is a premium, usage-billed add-on with a free monthly allowance, available in select regions; it reranks only the top 50 results and is billed when `queryType=semantic` and the search string is not empty.
 - Ingestion: **push** (you upload JSON) vs **pull** (indexer, from supported data sources such as Blob Storage, Cosmos DB, SharePoint, OneLake). Real-time sync needs push. Search indexes only JSON documents.
 - **AI enrichment**: skills chunk, vectorize and transform content at indexing time. **Integrated vectorization** generates embeddings in the pipeline. LLMs and agents do not require vectors.
 - Security: Microsoft Entra ID, Azure Private Link, document-level access control, RBAC. Remote SharePoint is designed for user-permission inheritance; Blob and ADLS Gen2 can inherit permissions; otherwise use the security-filter workaround.
-- Pricing model: **Dedicated** or **Serverless (Preview)**. Scaling terms (replicas, partitions) `[NEEDS VERIFICATION]` on the tier page.
+- Pricing model: **Dedicated** (provision replicas × partitions = search units; max 36 SU; replicas give query throughput and availability, partitions give storage and indexing throughput; 2 replicas for read SLA, 3 for read-write SLA) or **Serverless (Preview)** (consumption-based, scales to zero).
 - **Foundry IQ** is the managed knowledge layer built on AI Search for permission-aware knowledge bases for agents.
 
 ## 7. Content Understanding (in Foundry Tools)
@@ -137,7 +137,7 @@ Building blocks and facts:
 - You bring your own deployments of supported generative and embedding models.
 - API versions: `2025-11-01` is GA (production); `2026-06-01-preview` adds agentic mode, in-page segmentation, signature detection, document metadata.
 - Inherits Foundry **guardrails**; guardrail detections can show as warnings, so analysis can succeed with some fields missing.
-- `single-task` versus `pro mode` pipelines appear in the skills outline. `[NEEDS VERIFICATION]` exact meaning and current naming on Learn.
+- Content Understanding documents **standard** and **pro** modes (preview): standard is the default, cost-effective, lower-latency mode for diverse content; **pro** targets multi-step reasoning, multiple input documents and **reference data** supplied at analysis time (for example checking invoices against a contract), and is documented for documents only. The skills outline says "single-task and pro-mode"; "single-task" most likely corresponds to standard mode, but Learn does not use that exact term. `[NEEDS VERIFICATION]` the mapping. A separate **agentic mode** (preview, `2026-06-01-preview`) handles complex document reasoning one file at a time.
 - Tools: Foundry portal (Content Understanding Tool for agent workflows) and Content Understanding Studio (analyzer improvement, labeling, easier move from Document Intelligence).
 
 ## 8. Document Intelligence (in Foundry Tools)
@@ -201,7 +201,7 @@ Building blocks and facts:
 - Do not use **Azure AI Developer** for Foundry work; it targets Azure Machine Learning workspaces and hubs.
 - Publishing agents needs at least Foundry Project Manager on the Foundry resource. Fine-tuning needs both data-plane and control-plane permissions (Foundry Owner, or Foundry User + Foundry Account Owner).
 - Using outside resources: give the Foundry account's managed identity access (for example Storage Blob Data Reader on a storage account).
-- Private networking, Key Vault integration and customer-managed keys `[NEEDS VERIFICATION]` not yet read from Learn for Foundry.
+- Private networking (private endpoints, VNet-injected agent subnet, private DNS) and customer-managed keys (Key Vault or Managed HSM; prompt agents need bring-your-own storage for CMK) are covered in the [platform deep dive](../deep-dives/platform-network-and-reliability.md). Key Vault is also used for Foundry connection secrets.
 
 ## 15. Observability and evaluation
 
@@ -213,18 +213,21 @@ Three capabilities: **evaluation**, **monitoring**, **tracing**.
 - Voice agents' monitoring cards need Application Insights; single-turn and simulated-conversation evaluation are not supported for voice agents.
 - Playground evaluations are on by default and billed by consumption.
 
-## 16. Not yet researched (do these next)
+## 16. What is verified and what is still open
 
-Mark these as gaps before relying on this page:
+**Covered since the first version of this page** (see the linked deep dives): Foundry private networking and bring-your-own resources, high availability and recovery, customer-managed keys, CI/CD building blocks, Microsoft Agent Framework orchestration patterns and checkpointing, prompt engineering and generation parameters, chunking, the semantic ranker and vector search, PTU sizing, diagnostic log categories, content provenance (C2PA) and the OCR skill.
 
-- Foundry networking: private endpoints, VNet integration, firewall, data residency specifics.
-- CI/CD for Foundry projects (GitHub Actions, Azure DevOps, `azd`, Bicep/Terraform) and infrastructure design.
-- Microsoft Agent Framework API, multi-agent orchestration patterns, Foundry workflows.
-- Prompt engineering and model parameters (temperature, top_p, max tokens), reflection and self-critique loops, hybrid LLM + rules.
-- RAG implementation details: chunking, embeddings models, semantic ranker, evaluation of relevance.
-- Azure Video Indexer (the study guide links its docs) and Azure OpenAI audio models. `[NEEDS VERIFICATION]` whether they are tested.
-- Cost management, quota and rate-limit handling (retry with backoff, load balancing), model drift monitoring.
-- Responsible AI tooling: explanation tooling, provenance metadata, approval workflows for agents.
+**Still open** (mark these as gaps before relying on them):
+
+- **Agent Framework:** exact class names beyond the Sequential and Concurrent builders, and whether each workflow feature is labeled GA or preview.
+- **Responses API parameters:** whether a `max_tool_calls`-style limit exists; the reference page was not read.
+- **Video Indexer:** request field names for building a clip from time ranges in a project.
+- **Reflection and self-critique loops** and **hybrid LLM + rules engines** (named in the skills outline): no dedicated Learn page was read.
+- **Responsible AI explanation tooling** and the Foundry general-availability overview page.
+- **Azure OpenAI audio models** and whether they are tested.
+- **Content Understanding "single-task" naming** versus the documented standard and pro modes.
+- **Language vs LLM** split for text analysis tasks in the exam.
+- **CI/CD tooling specifics** (Azure DevOps, GitHub Actions, `azd`) for Foundry projects beyond running CI from inside the network.
 
 ## Sources
 

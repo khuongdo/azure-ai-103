@@ -19,13 +19,13 @@ retrieved: 2026-10-12
 
 # Best practices and real-world scenarios
 
-Exam questions are written as small real-world problems: "You need to X under constraints Y. What should you do?" This page explains the reasoning behind the right answers. Each scenario follows the same pattern: **the problem**, **what goes wrong if you ignore the practice**, **the best practice and why**, and **the exam angle**.
+Real projects look like small problems: "You need to X under constraints Y. What should you do?" This page explains the reasoning behind good answers. Each scenario follows the same pattern: **the problem**, **what goes wrong if you ignore the practice**, **the best practice and why**, and **the exam angle**.
 
 It connects to the [practice test review](../practice-tests/practice-test-1-review.md) (question numbers in brackets) and the [services map](../overview/azure-services-overview.md). Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn yet.
 
 ## Deep dives
 
-This page is the **summary**. For the mechanisms, worked examples, decision procedures and exam traps, read the deep dives:
+This page is the **summary**. For the mechanisms, worked examples and decision procedures, read the deep dives:
 
 | Deep dive | Covers |
 |---|---|
@@ -35,24 +35,6 @@ This page is the **summary**. For the mechanisms, worked examples, decision proc
 | [Platform, network and reliability](platform-network-and-reliability.md) | Resource model, private networking, BYO data, Cosmos DB sizing, recovery |
 | [Observability and agent lifecycle](observability-and-agent-lifecycle.md) | Tracing, agent evaluators, release process, debugging workflow |
 
-## How to read an exam scenario
-
-Underline the constraint words. They usually decide the answer:
-
-| Constraint word | Usually points to |
-|---|---|
-| "predictable" or "steady" high throughput, SLO | Provisioned (PTU) |
-| "unpredictable", "spiky", "pay only for use" | Standard or Global Standard pay-per-token |
-| "data must stay in the EU" | Data Zone type (or a geography type) |
-| "no code to maintain" | Prompt agent |
-| "own code or framework" | Hosted agent |
-| "exact product codes plus natural language" | Hybrid search |
-| "no secrets in code", "least privilege" | Managed identity, Entra ID, RBAC |
-| "audit", "who called what" | Diagnostic logs to Log Analytics |
-| "before release" + "attacks" | AI red teaming agent |
-| "generally available" | Avoid Preview-only features |
-
----
 
 ## 1. Grounded answers over company documents (RAG)
 
@@ -71,11 +53,9 @@ Underline the constraint words. They usually decide the answer:
 2. **Use hybrid search for mixed queries.** A hybrid query runs full-text (BM25) and vector search in parallel and merges results with **Reciprocal Rank Fusion (RRF)**. Keyword search is better for product codes, specialized jargon, dates and names; vector search finds conceptually similar text. Add the **semantic ranker** for reranking, and set `k` to 50 to give it enough input. Do not add `orderby`: an explicit sort overrides relevance ranking.
 3. **Chunk deliberately.** Chunking keeps inputs under model token limits (for example 8,191 tokens for `text-embedding-3-small`) and avoids poor single-vector representations. Learn recommends starting at **512 tokens with 25% overlap (128 tokens)**. The Text Split skill defaults suggested for character-based chunking are `pages` mode, `maximumPageLength` 2000 and `pageOverlapLength` 500. Tune with token counts from your real documents; an overlap that is too large can lead to no overlap at all.
 4. **Preserve structure at ingestion.** Content Understanding can output **Markdown** that keeps headings, tables and figure descriptions, which suits RAG. It is also available as a skill in AI Search for semantic chunking. Use JSON fields only when you need schema-based values for automation.
-5. **OCR scanned content in the indexing pipeline.** An OCR skill in the skillset extracts text from images and scanned pages before chunking. `[NEEDS VERIFICATION]` exact skill name and the `detectOrientation` parameter on Learn.
+5. **OCR scanned content in the indexing pipeline.** The OCR skill (`#Microsoft.Skills.Vision.OcrSkill`) extracts printed and handwritten text from images and scanned pages before chunking. Note that `detectOrientation` applies only to the legacy OCR v3.2 path; the current Read API is used for most languages. See the [retrieval deep dive](rag-retrieval-and-grounding.md).
 6. **Pick push or pull on purpose.** Pull (indexer) works for supported data sources; push is the only choice when content must be synchronized in real time or no supported source exists.
 7. **Do not assume you need vectors.** LLMs and agents do not require vectors; use them when you need similarity search.
-
-**Exam angle.** "Answers include facts not in the documents" → groundedness. "Exact codes and natural language" → hybrid + semantic ranker. "Scanned PDFs" → OCR in the pipeline.
 
 ---
 
@@ -99,8 +79,6 @@ Underline the constraint words. They usually decide the answer:
 5. **Function calling:** structured outputs are not supported with parallel function calls; set `parallel_tool_calls` to `false`.
 6. **Know the gap.** Learn notes that structured outputs are **not supported with Foundry Agent Service** (and with bring-your-own-data scenarios). For agents, validate tool arguments and outputs yourself.
 
-**Exam angle.** "Must always match a schema" → Structured Outputs, not just JSON mode. "Consistent terminology and format" → few-shot.
-
 ---
 
 ## 3. Safe agents that take real actions
@@ -119,10 +97,8 @@ Underline the constraint words. They usually decide the answer:
 2. **Use guardrails with the right intervention points.** A guardrail is a named collection of controls (risk + intervention point + action). Intervention points: user input, **tool call**, **tool response**, output. Tool call and tool response matter for agents because **indirect (cross-prompt) injection** often arrives through tool results and documents.
 3. **Remember the override rule.** An agent's guardrail **fully overrides** its model's guardrail. If the agent's guardrail has no control for a risk at an intervention point, that point is not scanned. Without a custom guardrail, the agent inherits the model deployment's guardrail.
 4. **Tune severity per risk.** Hate, sexual, self-harm and violence use thresholds Low, Medium, High (turning filtering Off requires approval). Add blocklists from Azure AI Content Safety for domain terms. Manage custom policies as code.
-5. **Control runaway cost and loops.** Connect only the tools you need (the agent might invoke any of them on each request), and cap output with `max_output_tokens` and `truncation` where you run orchestration yourself. `[NEEDS VERIFICATION]` how "max run steps" maps to the current Responses-based agents.
+5. **Control runaway cost and loops.** Connect only the tools you need (the agent might invoke any of them on each request), and cap output with `max_output_tokens` and `truncation` where you run orchestration yourself. "Max run steps" was an Assistants-era setting; the Responses API page does not document it or a maximum number of tool-call iterations, so put a stop condition in your own orchestration and instructions. [NEEDS VERIFICATION] in the Responses API parameter reference.
 6. **Red team before release and on a schedule.** Fixed datasets replay known inputs. The **AI red teaming agent** generates attacks (PyRIT-based) to find weaknesses, best used with human review. Scheduled red teaming continues after deployment. Defender for AI services can alert on jailbreak attempts and data leakage.
-
-**Exam angle.** "Prompt alone is not enough" → enforce in tools and guardrails. "Agent's guardrail vs model's" → agent overrides. "Find vulnerabilities before deployment" → red teaming agent.
 
 ---
 
@@ -146,8 +122,6 @@ Underline the constraint words. They usually decide the answer:
 6. **Add your own gateway for resilience.** Foundry does not provide load balancing or failover across model deployments. A custom gateway such as Azure API Management can route, health-check and break circuits. Use data zone deployments with spillover where supported, and keep models in the same region as agents to cut latency.
 7. **Monitor 429 and 503** to detect throttling at peak times.
 
-**Exam angle.** Read the load words: "steady and high" vs "spiky". Remember that Provisioned buys predictability, not lower price per token.
-
 ---
 
 ## 5. Observability and audit
@@ -159,10 +133,8 @@ Underline the constraint words. They usually decide the answer:
 1. **Trace agents with OpenTelemetry into Application Insights.** Tracing shows each model call, tool invocation and decision, and where latency comes from. It supports LangChain, LangGraph, OpenAI Agents SDK and Microsoft Agent Framework.
 2. **Use the three capabilities together:** evaluation (quality, safety), monitoring (dashboards, alerts), tracing (debugging).
 3. **Evaluate continuously, not once.** Pre-production: datasets and red teaming. Production: sampled continuous evaluation, scheduled evaluation to detect drift, scheduled red teaming, Azure Monitor alerts on failed quality thresholds.
-4. **Send resource logs to Log Analytics** via diagnostic settings and query with KQL, so audit needs no code change. Also send diagnostics, baseline alerts and token tracking from Azure Monitor and Application Insights. `[NEEDS VERIFICATION]` exact log category names for the resource type.
+4. **Send resource logs to Log Analytics** via diagnostic settings and query with KQL, so audit needs no code change. The Foundry Models log categories are **RequestResponse**, **Trace** and **Audit**. Also send diagnostics, baseline alerts and token tracking from Azure Monitor and Application Insights. See the [observability deep dive](observability-and-agent-lifecycle.md).
 5. **Log the machines with direct data-plane access** (jump boxes, build agents).
-
-**Exam angle.** "Without modifying the application" → diagnostic settings. "See each tool call" → tracing.
 
 ---
 
@@ -183,8 +155,6 @@ Underline the constraint words. They usually decide the answer:
 7. **Application owns authorization.** Foundry does not enforce per-user access to conversations, so the application must check conversation ownership to prevent broken object-level authorization.
 8. **Govern with Azure Policy** for network rules, private endpoints, customer-managed keys and allowed regions, and to restrict deployment types.
 
-**Exam angle.** "No secrets" → managed identity + Entra. "Teams must not see each other's data" → separate projects with scoped roles and connections.
-
 ---
 
 ## 7. Reliability and recovery
@@ -196,9 +166,7 @@ Underline the constraint words. They usually decide the answer:
 - Foundry Agent Service has **no built-in backup, disaster recovery or point-in-time restore**. Define agents **as code** in source control and redeploy; use **Cosmos DB continuous backup** (7-day point-in-time restore) to recover agent definitions and conversations; use zone-redundant Cosmos DB, ZRS/GZRS storage and at least three AI Search replicas; add **delete locks** on dependencies.
 - **Standard** deployments are single-region without availability-zone support; Global and Data Zone deployments give more resilience.
 - Use a **user-assigned managed identity** for projects so role assignments survive recreation.
-- The reference architecture is single-region; multi-region design is out of its scope, so plan it separately. `[NEEDS VERIFICATION]` current guidance for multi-region Foundry.
-
-**Exam angle.** "Recover agents after deletion" → agents as code + Cosmos DB backup.
+- The reference architecture is single-region, but Learn's resiliency guidance covers the rest: **Foundry does not provide automatic failover or disaster recovery**, so you build it (Cosmos DB continuous backup and a failover-region replica, GZRS storage, delete locks, agents as code). See the [platform deep dive](platform-network-and-reliability.md).
 
 ---
 
@@ -217,8 +185,6 @@ Underline the constraint words. They usually decide the answer:
 7. **Use the right tool for the job.** File search for uploaded documents, OpenAPI tool for REST APIs, Code Interpreter for calculation and charts. Use a **toolbox** to share curated tools through one MCP endpoint with central authentication and versioning. Fewer tools means faster runs and lower cost.
 8. **Roll out gradually.** Foundry does not provide canary or blue-green natively; add a routing layer.
 
-**Exam angle.** "Roll back a bad change" → versions. "Quality regression" → evaluation gate. "Agent can't access resource after publish" → reassign permissions to the agent identity.
-
 ---
 
 ## 9. Image and video generation
@@ -230,9 +196,7 @@ Underline the constraint words. They usually decide the answer:
 - **Video generation is asynchronous.** Create a job, poll its status until `succeeded`, `failed` or `cancelled`, then download the result. Never block a request thread waiting for it. Sora 2 is Preview, so confirm availability before depending on it.
 - **Image generation:** `dall-e-3` is retired; use `gpt-image` models. Use the **edit** endpoint with a mask for inpainting (transparent mask areas are edited). Handle `content_policy_violation` and content filter errors gracefully. Default quota is low (5 images per minute per deployment for some models), so queue requests.
 - **Image understanding:** send images to a **vision-capable (multimodal) model** and instruct it to answer only from visible evidence and say "not visible" otherwise, which reduces hallucination.
-- **Provenance and policy:** moderate inputs and outputs, filter unsafe visuals, and watch for **indirect prompt injection** through text embedded in images. For labeling AI-generated content, C2PA content credentials are the likely mechanism `[NEEDS VERIFICATION]`.
-
-**Exam angle.** "Long-running generation" → async job pattern. "Describe images" → multimodal model, not a text-only or embedding model.
+- **Provenance and policy:** moderate inputs and outputs, filter unsafe visuals, and watch for **indirect prompt injection** through text embedded in images. For labeling AI-generated content, Microsoft marks output from supported Foundry models with **Content Credentials (C2PA)** and invisible watermarks, and provides a **Content Provenance Detection** website and API to check them. Metadata can be lost by cropping, resizing, format conversion or re-saving.
 
 ---
 
