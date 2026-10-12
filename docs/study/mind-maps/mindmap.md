@@ -1,6 +1,6 @@
 # Mind maps
 
-Memory aids for the [summary](summary.md). Read the text first, then use these to recall the structure. Tap a node to collapse or expand it. Pinch to zoom, drag to move.
+Memory aids for the [summary](../overview/summary.md). Read the text first, then use these to recall the structure. Tap a node to collapse or expand it. Pinch to zoom, drag to move.
 
 === "Exam outline"
 
@@ -12,7 +12,7 @@ Memory aids for the [summary](summary.md). Read the text first, then use these t
 
 === "Azure services"
 
-    Services and the key facts to remember. Details in the [services map](azure-services-overview.md).
+    Services and the key facts to remember. Details in the [services map](../overview/azure-services-overview.md).
 
     <iframe src="../mindmap-services-view.html" title="AI-103 Azure services mind map" style="width:100%;height:70vh;border:1px solid var(--md-default-fg-color--lightest);border-radius:6px"></iframe>
 

@@ -24,17 +24,28 @@ theme:
 
 nav:
   - Home: index.md
-  - Summary: study/summary.md
-  - Azure services map: study/azure-services-overview.md
-  - Best practices and scenarios: study/best-practices-and-real-world-scenarios.md
-  - Deep dives:
-    - Retrieval and grounding: study/deep-dive-rag-retrieval-and-grounding.md
-    - Agent safety and identity: study/deep-dive-agent-safety-and-identity.md
-    - Capacity, cost, throttling: study/deep-dive-capacity-cost-and-throttling.md
-    - Platform, network, reliability: study/deep-dive-platform-network-and-reliability.md
-    - Observability and lifecycle: study/deep-dive-observability-and-agent-lifecycle.md
-  - Practice test 1 review: study/practice-test-1-review.md
-  - Mind maps: study/mindmap.md
+  - Study:
+    - study/index.md
+    - Overview:
+      - Summary: study/overview/summary.md
+      - Azure services map: study/overview/azure-services-overview.md
+    - Deep dives:
+      - Best practices overview: study/deep-dives/best-practices-and-real-world-scenarios.md
+      - Retrieval and grounding: study/deep-dives/rag-retrieval-and-grounding.md
+      - Agent safety and identity: study/deep-dives/agent-safety-and-identity.md
+      - Capacity, cost, throttling: study/deep-dives/capacity-cost-and-throttling.md
+      - Platform, network, reliability: study/deep-dives/platform-network-and-reliability.md
+      - Observability and lifecycle: study/deep-dives/observability-and-agent-lifecycle.md
+    - Quizzes:
+      - Retrieval and grounding: study/quizzes/rag-retrieval-and-grounding-quiz.md
+      - Agent safety and identity: study/quizzes/agent-safety-and-identity-quiz.md
+      - Capacity, cost, throttling: study/quizzes/capacity-cost-and-throttling-quiz.md
+      - Platform, network, reliability: study/quizzes/platform-network-and-reliability-quiz.md
+      - Observability and lifecycle: study/quizzes/observability-and-agent-lifecycle-quiz.md
+    - Practice tests:
+      - Practice test 1 review: study/practice-tests/practice-test-1-review.md
+    - Mind maps:
+      - Mind maps: study/mind-maps/mindmap.md
 
 markdown_extensions:
   - admonition

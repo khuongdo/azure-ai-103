@@ -21,7 +21,7 @@ retrieved: 2026-10-12
 
 Exam questions are written as small real-world problems: "You need to X under constraints Y. What should you do?" This page explains the reasoning behind the right answers. Each scenario follows the same pattern: **the problem**, **what goes wrong if you ignore the practice**, **the best practice and why**, and **the exam angle**.
 
-It connects to the [practice test review](practice-test-1-review.md) (question numbers in brackets) and the [services map](azure-services-overview.md). Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn yet.
+It connects to the [practice test review](../practice-tests/practice-test-1-review.md) (question numbers in brackets) and the [services map](../overview/azure-services-overview.md). Items marked `[NEEDS VERIFICATION]` are not confirmed on Microsoft Learn yet.
 
 ## Deep dives
 
@@ -29,11 +29,11 @@ This page is the **summary**. For the mechanisms, worked examples, decision proc
 
 | Deep dive | Covers |
 |---|---|
-| [Retrieval, grounding and structured output](deep-dive-rag-retrieval-and-grounding.md) | RAG failure chain, hybrid search and RRF math, semantic ranker, chunking, evaluators, Structured Outputs |
-| [Agent safety and identity](deep-dive-agent-safety-and-identity.md) | Guardrails, four intervention points, Prompt Shields, red teaming, agent identity and token exchange |
-| [Capacity, cost and throttling](deep-dive-capacity-cost-and-throttling.md) | Deployment types, PTU, quota, spillover, 429 handling, cost levers |
-| [Platform, network and reliability](deep-dive-platform-network-and-reliability.md) | Resource model, private networking, BYO data, Cosmos DB sizing, recovery |
-| [Observability and agent lifecycle](deep-dive-observability-and-agent-lifecycle.md) | Tracing, agent evaluators, release process, debugging workflow |
+| [Retrieval, grounding and structured output](rag-retrieval-and-grounding.md) | RAG failure chain, hybrid search and RRF math, semantic ranker, chunking, evaluators, Structured Outputs |
+| [Agent safety and identity](agent-safety-and-identity.md) | Guardrails, four intervention points, Prompt Shields, red teaming, agent identity and token exchange |
+| [Capacity, cost and throttling](capacity-cost-and-throttling.md) | Deployment types, PTU, quota, spillover, 429 handling, cost levers |
+| [Platform, network and reliability](platform-network-and-reliability.md) | Resource model, private networking, BYO data, Cosmos DB sizing, recovery |
+| [Observability and agent lifecycle](observability-and-agent-lifecycle.md) | Tracing, agent evaluators, release process, debugging workflow |
 
 ## How to read an exam scenario
 

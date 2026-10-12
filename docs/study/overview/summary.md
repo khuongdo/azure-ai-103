@@ -11,7 +11,7 @@ retrieved: 2026-10-12
 
 # AI-103 summary
 
-One-page text summary for review. Details and sources are in the [Azure services map](azure-services-overview.md). The [mind maps](mindmap.md) are a memory aid for this page, not a replacement. Items marked `[NEEDS VERIFICATION]` are not yet confirmed on Microsoft Learn.
+One-page text summary for review. Details and sources are in the [Azure services map](azure-services-overview.md). The [mind maps](../mind-maps/mindmap.md) are a memory aid for this page, not a replacement. Items marked `[NEEDS VERIFICATION]` are not yet confirmed on Microsoft Learn.
 
 ## Exam at a glance
 

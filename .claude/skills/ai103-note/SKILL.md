@@ -7,7 +7,7 @@ description: Write English study notes for the Microsoft AI-103 exam (Developing
 
 Write the notes in **English**: the exam is in English, so the learner needs the exact terms and phrasing used in questions. These instructions are in English too; talk to the user in Vietnamese in chat, as required by the repo `CLAUDE.md`.
 
-Create one study note file in `docs/study/` for exactly one section of the study guide. Goal: after reading, the learner knows the concepts, knows when to choose what, and knows how to do it in Python. The content must be verifiable, because this is exam material and wrong information does more harm than missing information.
+Create one study note file under `docs/study/` for exactly one section of the study guide. Goal: after reading, the learner knows the concepts, knows when to choose what, and knows how to do it in Python. The content must be verifiable, because this is exam material and wrong information does more harm than missing information.
 
 ## Workflow
 
@@ -15,11 +15,12 @@ Create one study note file in `docs/study/` for exactly one section of the study
 2. **Find related modules**: read `docs/official/learning-paths.md` and pick the Learn modules that match this section.
 3. **Get real sources**: use WebFetch/WebSearch on `learn.microsoft.com` for the modules and related docs. Do not write volatile details from memory (SDK names, class names, parameters, limits, SKUs, prices, GA/Preview status), because Foundry and the agent SDKs change fast.
 4. **Write the file** using the template below.
-5. **Report** briefly: the file created, which section, any `[NEEDS VERIFICATION]` spots, and open questions.
+5. **Register it**: add the file to the `nav:` in `mkdocs.yml` and to the tables in `docs/study/index.md`, use relative links to other study folders, and run `mkdocs build --strict` to catch broken links.
+6. **Report** briefly: the file created, which section, any `[NEEDS VERIFICATION]` spots, and open questions.
 
 ## File template
 
-File name: descriptive English kebab-case, for example `build-rag-application.md`.
+File name: descriptive English kebab-case, for example `build-rag-application.md`. Save it in the folder that matches its purpose: topic notes go in `docs/study/deep-dives/`, summaries and service maps in `docs/study/overview/`.
 
 ```markdown
 ---

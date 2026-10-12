@@ -10,7 +10,13 @@ docs/
 │   ├── skills-measured.md   # Study guide: skills tested + weights (local only, gitignored)
 │   ├── learning-paths.md    # 4 learning paths / 31 modules of course AI-103T00
 │   └── links.md             # Official links
-└── study/      # AI-generated study material based on docs/official
+└── study/      # AI-generated study material based on docs/official (grouped by purpose)
+    ├── index.md          # Study hub: explains the folders and pairs deep dives with quizzes
+    ├── overview/         # One-page summary, Azure services map
+    ├── deep-dives/       # Topic notes: mechanisms, worked examples, decision guides, traps
+    ├── quizzes/          # <topic>-quiz.md: flashcards and scenario questions for a deep dive
+    ├── practice-tests/   # Reviews of full practice tests
+    └── mind-maps/        # Markmap pages (mindmap.md embeds the *-view.html files)
 ```
 
 ## Rules
@@ -23,6 +29,8 @@ docs/
   - **Code: English** (variable/function/file names, code comments, commit messages, config such as `mkdocs.yml` and workflows).
   - All content in `docs/study/` (notes, flashcards, questions, explanations) is written in **English**, because the exam is in English and the learner needs the exact terms and phrasing used in questions. Use simple, clear wording.
 - File names: kebab-case and descriptive (for example `plan-manage-ai-solution.md`).
+- Placement: put each new study file in the folder that matches its purpose (see Structure). A quiz for `deep-dives/<topic>.md` is `quizzes/<topic>-quiz.md`.
+- **Navigation is explicit.** `mkdocs.yml` has a hand-written `nav:`. When you add, move or rename a study file, update `nav:` and the tables in `docs/study/index.md`, then run `mkdocs build --strict`. Use relative links between folders (for example `../deep-dives/<topic>.md`).
 - When reporting to the user: be concise and list unresolved questions at the end.
 
 ## Website (MkDocs Material, GitHub Pages)

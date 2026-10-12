@@ -93,7 +93,7 @@ Also: **Output Quality** (Preview, batches fluency, coherence, intent resolution
 
 Practical limits: agent evaluators fully support File Search, function tools, MCP and knowledge-based MCP. For Azure AI Search, Bing grounding, SharePoint, Code Interpreter, Fabric Data Agent and Web Search, avoid `tool_call_accuracy`, tool input accuracy, tool output utilization, tool call success and `groundedness` because support is limited.
 
-For RAG quality evaluators (groundedness, relevance, retrieval and others) see the [retrieval deep dive](deep-dive-rag-retrieval-and-grounding.md).
+For RAG quality evaluators (groundedness, relevance, retrieval and others) see the [retrieval deep dive](rag-retrieval-and-grounding.md).
 
 ### Dataset shape
 Rows contain `query`, `response` (and optionally `tool_definitions`), or a full `messages` array with roles `system`, `user`, `assistant`, `tool` and tool calls/results. Turn-level scores one response; conversation-level scores the whole interaction (`evaluation_level`).

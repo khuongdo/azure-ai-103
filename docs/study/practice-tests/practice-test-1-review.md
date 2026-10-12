@@ -101,6 +101,6 @@ Q12 and Q22 are the answers most likely to be framed differently on the real exa
 
 ## Study next
 
-- Read the [services map](azure-services-overview.md) sections on guardrails, deployment types and Content Understanding.
+- Read the [services map](../overview/azure-services-overview.md) sections on guardrails, deployment types and Content Understanding.
 - Run `ai103-note` for the responsible AI section, then `ai103-quiz` to generate more questions on the weak areas.
 - Resolve every [NEEDS VERIFICATION] above on Microsoft Learn, then update this page.

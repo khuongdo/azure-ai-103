@@ -7,14 +7,15 @@ description: Generate English flashcards and practice questions (with explanatio
 
 The output file is written entirely in **English**, so the learner gets used to the style of real exam questions. These instructions are in English too; talk to the user in Vietnamese in chat, as required by the repo `CLAUDE.md`.
 
-Turn an existing note in `docs/study/` into a set of flashcards and practice questions, saved next to that note. A question is only valuable if the answer is correct and sourced, so every question must trace back to the content of the note (which already cites Microsoft Learn sources).
+Turn an existing note in `docs/study/` into a set of flashcards and practice questions, saved in `docs/study/quizzes/`. A question is only valuable if the answer is correct and sourced, so every question must trace back to the content of the note (which already cites Microsoft Learn sources).
 
 ## Workflow
 
 1. **Pick the note**: the user names a file; if not, list `docs/study/` and pick the closest match, saying which one you picked. If no note exists for the topic, suggest using the `ai103-note` skill first instead of inventing content.
 2. **Read the note** and its frontmatter (`skill`, `sources`). Cover the bullets in "Exam scope" evenly instead of piling onto one part.
-3. **Generate the content** into `docs/study/<note-name>-quiz.md` using the template below.
-4. **Report** briefly: the file, number of flashcards, number of questions, and any `[NEEDS VERIFICATION]` items.
+3. **Generate the content** into `docs/study/quizzes/<note-name>-quiz.md` (for `deep-dives/<topic>.md` the quiz is `quizzes/<topic>-quiz.md`) using the template below. Link back to the note with a relative path such as `../deep-dives/<topic>.md`, and set `note:` in the frontmatter to the note's full path.
+4. **Register it**: add the quiz to the `nav:` in `mkdocs.yml` and to the pairs table in `docs/study/index.md`, then run `mkdocs build --strict`.
+5. **Report** briefly: the file, number of flashcards, number of questions, and any `[NEEDS VERIFICATION]` items.
 
 ## File template
 
