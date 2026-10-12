@@ -22,8 +22,16 @@ theme:
       scheme: slate
       toggle: { icon: material/weather-sunny, name: Light mode }
 
+nav:
+  - Home: index.md
+  - Summary: study/summary.md
+  - Azure services map: study/azure-services-overview.md
+  - Mind maps: study/mindmap.md
+
 markdown_extensions:
   - admonition
+  - pymdownx.tabbed:
+      alternate_style: true
   - tables
   - toc: { permalink: true }
   - pymdownx.details

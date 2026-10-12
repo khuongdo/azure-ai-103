@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-103 services mind map</title>
+<style>
+  /* Standalone page (no site theme CSS) so Markmap measures text correctly */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; color: #222; font-family: system-ui, sans-serif; }
+  .markmap { width: 100vw; height: 100vh; }
+  .markmap svg { width: 100%; height: 100%; }
+  @media (prefers-color-scheme: dark) {
+    html, body { background: #1e2129; color: #e6e6e6; }
+    .markmap { --markmap-text-color: #e6e6e6; --markmap-code-bg: #333; --markmap-code-color: #eee; }
+  }
+</style>
+</head>
+<body>
+<div class="markmap"><script type="text/template">
+---
+markmap:
+  initialExpandLevel: 2
+---
+# Azure services
+## Foundry platform
+### Resource → project → agent
+### Deployment types
+- Global Standard = default
+- Provisioned = PTU, steady latency
+- Batch = 50% off, 24 h
+- Data Zone = US, EU, APAC
+- Developer = fine-tune tests
+### Renames
+- AI Foundry → Microsoft Foundry
+- AI Services → Foundry Tools
+- Assistants → Responses API
+## Agent Service
+### Prompt agent
+### Voice agent (Voice Live)
+### Hosted agent (your code)
+### Tools
+- web search, file search, code interpreter
+- functions, OpenAPI, MCP
+- toolbox = one MCP endpoint
+### A2A protocol v1.0 GA
+## Azure AI Search
+### Classic vs agentic retrieval
+### Full-text, vector, hybrid
+### Push vs pull (indexer)
+### Integrated vectorization
+### Foundry IQ
+## Content Understanding
+### Analyzer
+### Markdown or JSON fields
+### Extract, Classify, Generate
+### Confidence and grounding
+## Document Intelligence
+### Read, Layout
+### Prebuilt, custom, classifier
+### v4.0 current
+## Speech
+### STT: real-time, fast, batch
+### TTS: neural, SSML, custom voice
+### Speech translation
+### Voice Live
+## Language
+### Core: PII, NER, language detection
+### Legacy: sentiment, summarization, CLU
+### MCP server
+## Translator
+### Text: v3 and 2026-06-06
+### Document: batch vs synchronous
+### Adaptive custom translation
+## Vision and generation
+### gpt-image (dall-e-3 retired)
+### Inpainting with mask
+### Sora 2 video (Preview, async)
+### Image Analysis 4.0 retiring 2028
+## Safety
+### Guardrail = controls
+### Intervention points
+- user input
+- tool call
+- tool response
+- output
+### Agent guardrail overrides model
+### Prompt Shields, indirect attacks
+## Security and monitoring
+### Entra ID keyless > API keys
+### Foundry User, Agent Consumer
+### Evaluators, tracing, App Insights
+</script></div>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18.12"></script>
+</body>
+</html>
