@@ -42,6 +42,7 @@ A running example used below: a company uploads a 40-page PDF named *Returns Pol
 ### Offline pipeline: turning documents into something searchable
 
 **Step 1. Collect.** *Goal: get the content into the system and keep it up to date.*
+
 - What happens: an **indexer** *pulls* content from a supported source (Blob Storage, Cosmos DB, SharePoint, OneLake) on a schedule, or your code *pushes* JSON documents into the index. Pull is easiest; push is the only choice when content must be synchronized in real time or no supported source exists.
 - Also collected here: **metadata** (title, department, region, effective date) and **access information** (who may read this). You cannot add these later without re-reading the source.
 - Example: the PDF arrives from a SharePoint library with metadata `department=Customer Care`, `effective=2026-01-01`, and its access list.
@@ -49,17 +50,20 @@ A running example used below: a company uploads a 40-page PDF named *Returns Pol
 - How you check: counts of documents found vs indexed; failed-document list.
 
 **Step 2. Extract text and structure.** *Goal: turn a file into clean, ordered text that keeps meaning.*
+
 - What happens: a digital PDF can be read directly; a **scanned** PDF is an image, so **OCR** must read the letters. **Layout analysis** keeps headings, paragraphs and **tables** (a table flattened into one line loses which number belongs to which column). Content Understanding can output **Markdown** that keeps headings and tables and describes figures.
 - Example: the returns table *Product | Return window* becomes a Markdown table, not "Laptops 30 days Phones 14 days" in one string.
 - What goes wrong: no text from scans, garbled columns, lost headers.
 - How you check: open the extracted text for a few real files and read it yourself. This is the cheapest and most valuable test in the whole pipeline.
 
 **Step 3. Enrich.** *Goal: add useful information the raw text does not have.*
+
 - What happens: skills in the indexer pipeline can detect language, extract key phrases, describe images, or attach the metadata from step 1 to every piece. The goal is to make later filtering and ranking possible.
 - Example: each piece of the policy gets `department` and `effective` so a query can prefer the latest version.
 - What goes wrong: enrichment you do not need adds cost and noise.
 
 **Step 4. Chunk.** *Goal: cut long text into pieces that are small enough to embed and focused enough to retrieve.*
+
 - Why it is needed: (1) embedding and chat models have **token limits** (for example 8,191 tokens for `text-embedding-3-small`); (2) one vector for a whole 40-page document blurs many topics together; (3) the model should receive a **focused passage**, not a book.
 - What happens: split by size with overlap (starting point: **512 tokens, 25% overlap**), by sentences, or by headings and meaning (semantic chunking). Each chunk keeps a pointer to its source document, page and section.
 - Example: the 40 pages become about 90 chunks; the "45 days" rule and the "30 days for laptops" rule land in the same chunk because the table was kept intact.
@@ -67,11 +71,13 @@ A running example used below: a company uploads a 40-page PDF named *Returns Pol
 - How you check: read some chunks; run retrieval evaluators on test questions.
 
 **Step 5. Embed.** *Goal: convert each chunk into a vector so meaning can be compared with math.*
+
 - What happens: an **embedding model** maps text to a list of numbers. Chunks with similar meaning get similar numbers, so "give money back" and "refund" end up close together. With **integrated vectorization**, the indexer calls the embedding model for you.
 - Rule: the **same embedding model and dimensions** must be used for chunks now and for questions later.
 - What goes wrong: changing the model without re-embedding; text over the token limit being cut off silently.
 
 **Step 6. Index.** *Goal: store chunks so they can be found quickly.*
+
 - What happens: the search service writes each chunk into two structures: an **inverted index** (keyword lookup, scored with BM25) and a **vector index** (nearest-neighbor lookup, HNSW), together with the metadata and access fields. This is why one index can do keyword, vector and hybrid search.
 - What goes wrong: schema changes require reindexing; permission fields forgotten.
 - How you check: run a few searches directly in the portal before involving any LLM.
@@ -79,38 +85,46 @@ A running example used below: a company uploads a 40-page PDF named *Returns Pol
 ### Online pipeline: answering a question
 
 **Step 7. Understand the question.** *Goal: make sure the search query reflects what the user really wants.*
+
 - What happens: in simple systems the question is used as-is. Better systems rewrite it: fix typos, expand synonyms, or (in **agentic retrieval**) have an LLM **break a complex question into sub-questions** that are searched in parallel. Conversation history can be folded in so "and for phones?" becomes "return window for phones".
 - Example: the question needs two facts (laptop rule, how many days since purchase), so it becomes two sub-queries.
 - What goes wrong: follow-up questions searched without context; vague questions.
 
 **Step 8. Retrieve.** *Goal: get a candidate set of chunks, typically dozens.*
+
 - What happens: the question is embedded (step 5 model), then the engine runs a **keyword query and a vector query in parallel** (hybrid), applies **filters** (department, region, date) and **security trimming** (only chunks the user may read). Each method returns its own ranked list.
 - Example: keyword search finds "laptop" and "45 days" exactly; vector search finds "refund window for computers".
 - What goes wrong: keyword-only misses paraphrases; vector-only misses exact codes; filters removing everything.
 
 **Step 9. Merge and rerank.** *Goal: put the best candidates first.*
+
 - What happens: **Reciprocal Rank Fusion** merges the lists using rank positions. The optional **semantic ranker** then rereads the top 50 and scores each 0 to 4 for how well it answers the question. See sections 2 and 3 for how both work.
 - What goes wrong: the right chunk was never in the top 50, so reranking cannot help.
 
 **Step 10. Select context.** *Goal: choose what actually goes to the model.*
+
 - What happens: keep the best few chunks that fit a **token budget**. More chunks help recall but cost money, add latency, and can distract the model.
 - Example: top 5 chunks, about 2,500 tokens.
 - What goes wrong: too few (missing facts) or too many (cost, noise, "lost in the middle" effects).
 
 **Step 11. Build the prompt.** *Goal: tell the model exactly how to use the evidence.*
+
 - What happens: the prompt combines (a) **system instructions** ("answer only from the sources; if the answer is not there, say so; cite sources"), (b) the **retrieved chunks**, each labeled with a source ID, (c) recent **conversation history**, and (d) the **user question**. Keep document text clearly separated from instructions, because retrieved documents are third-party content and can contain hidden instructions.
 - What goes wrong: instructions that allow guessing; documents mixed into instructions (injection risk).
 
 **Step 12. Generate.** *Goal: write the answer from the evidence.*
+
 - What happens: the language model produces the answer. Lower **temperature** gives more consistent, less inventive wording. Choose the **smallest model that passes your quality tests**.
 - Example answer: "Laptops can be returned within 30 days, so a return after 45 days is not eligible. [Returns Policy 2026, section 3]"
 - What goes wrong: invented details (fabrication), ignoring the context, over-long answers.
 
 **Step 13. Check the output.** *Goal: stop bad answers before the user sees them.*
+
 - What happens: **guardrails** scan the output (harmful content, protected material), the app verifies that **citations** point to real chunks, and optionally a **groundedness** check confirms the claims appear in the context.
 - What goes wrong: citations that look real but are not; checks added without measuring false blocks.
 
 **Step 14. Log and evaluate.** *Goal: know whether the system works and improve it.*
+
 - What happens: store the question, retrieved chunks, scores, prompt version, answer and a **trace**. Run evaluators (retrieval, groundedness, relevance, completeness) on a test set before each release and on sampled production traffic. User feedback adds new test questions.
 - What goes wrong: not logging the retrieved chunks, so you cannot tell whether a bad answer was a retrieval or a generation problem.
 

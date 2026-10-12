@@ -72,6 +72,7 @@ nav:
       - Mind maps: study/mind-maps/mindmap.md
 
 markdown_extensions:
+  - nl2br
   - admonition
   - pymdownx.tabbed:
       alternate_style: true
