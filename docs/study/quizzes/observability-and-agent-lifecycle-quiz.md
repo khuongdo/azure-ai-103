@@ -55,6 +55,12 @@ Answers and explanations come from the [deep dive](../deep-dives/observability-a
 **Q:** What should you do if a previously valid agent ID returns 404?
 **A:** Treat it as terminal (the agent was deleted) and recreate it; do not retry in a loop.
 
+**Q:** Which Azure ML monitoring signal detects production inputs changing from the baseline?
+**A:** Data drift (alongside prediction drift and data quality).
+
+**Q:** What happens by default when a model monitoring threshold is exceeded?
+**A:** Azure ML sends an alert email to the user who set up the monitor.
+
 ## Practice questions
 
 ### 1. Users report that an agent sometimes gives a wrong answer. You need to see, for one failing request, which tools were called, with which arguments, and where the time went. What should you use?
@@ -204,5 +210,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 **Correct: B.** Publishing creates a distinct agent identity, and permissions held by the project identity do not transfer. The publish checklist should include reassigning the minimum required access.
 **Incorrect:** A — it tests the unpublished identity and would not catch the permission change; C — model size is unrelated; D — it removes visibility.
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
+
+</details>
+
+### 11. A deployed Azure ML model's input feature distribution slowly changes compared with its training data. Which feature detects this and alerts you?
+
+- A. Model monitoring with a data drift signal and threshold
+- B. Prompt caching
+- C. Content filter annotations
+- D. A larger compute SKU
+
+<details><summary>Answer</summary>
+
+**Correct: A.** Data drift compares production data with a baseline and alerts at a threshold.
+**Incorrect:** B, C, D — unrelated to drift detection.
+Source: https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-model-performance
 
 </details>

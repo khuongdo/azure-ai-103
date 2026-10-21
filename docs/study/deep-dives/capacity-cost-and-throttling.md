@@ -6,7 +6,8 @@ sources:
   - https://learn.microsoft.com/en-us/azure/foundry/foundry-models/quotas-limits
   - https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/provisioned-throughput
   - https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
-retrieved: 2026-10-12
+  - https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/prompt-caching
+retrieved: 2026-10-21
 ---
 
 # Deep dive: capacity, cost and throttling
@@ -205,6 +206,20 @@ Set them explicitly; the library default may not match the service. Guidance: no
 | **Keep resources in one region** | Avoids cross-region bandwidth charges | Check residency rules |
 | **Restrict playground use in production** | Prevents unplanned spend | Use pre-production for experiments |
 | **Azure Policy** | Block expensive deployment types | Deny `sku.name` on `Microsoft.CognitiveServices/accounts/deployments` |
+
+### Prompt caching in detail
+
+Prompt caching keeps a temporary cache of processed input tokens, so a request that starts with the same content as an earlier one is cheaper and faster. It changes only latency and cost, never the output.
+
+1. **Requirement.** The prompt must be at least **1,024 tokens** and the **first 1,024 tokens must be identical** to a cached prompt. One different character in that prefix is a cache miss (`cached_tokens` = 0 in `prompt_tokens_details`). On GPT-5.5 and earlier, hits beyond 1,024 tokens come in **128-token increments**.
+2. **Prompt layout.** Put stable content first (system message, tool definitions, reference documents, few-shot examples) and variable content last (the user question). Keep conversation context append-only. *Example:* a 3,000-token policy document followed by a 40-token question caches well; a timestamp placed at the top of the prompt breaks the prefix on every call.
+3. **Lifetime.** In-memory caches are usually cleared after 5 to 10 minutes of inactivity and always within one hour of last use. Extended retention (selected models) can keep prefixes up to 24 hours. Caches are not shared between Azure subscriptions.
+4. **Pricing.** Cache reads are billed at a discount on input tokens for Standard deployments (up to 100% discount on Provisioned). Models before the GPT-5.6 family charge nothing extra to write the cache; on GPT-5.6 and later, cache **writes can be charged**. GPT-5.6 and later also add `prompt_cache_key` and explicit cache breakpoints (not on PTU-M).
+5. **Check.** Read `cached_tokens` in the response; if it is 0 for repeated prompts, compare the first 1,024 tokens byte by byte.
+
+*What can go wrong:* variable text early in the prompt, too-short prompts, traffic too sparse to keep the cache warm, expecting caching to cut output tokens (it does not).
+
+Do not confuse it with other levers: **batch** is cheaper but asynchronous (24-hour target), and **quota** limits throughput, not unit price.
 
 Flex processing (lower cost for delay-tolerant workloads) and priority processing (faster responses pay-as-you-go) are request-level options on Global Standard; priority is also available on Data Zone Standard.
 

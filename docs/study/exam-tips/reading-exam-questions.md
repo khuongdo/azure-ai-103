@@ -42,7 +42,7 @@ Patterns seen in [practice test 2](../practice-tests/practice-test-2-review.md).
 2. **Cost versus latency.** A cheap option can be asynchronous (batch). Check it against the latency requirement before choosing it.
 3. **Throughput versus price.** Quota and rate limits change throughput, not unit price.
 4. **Pick the purpose-built feature.** The answer is usually the feature designed for the job (`smartCrops` for framing, a soft-delete policy for blob deletions), not a workaround.
-5. **Check modality and scope.** Many wrong answers are real features used on the wrong input: Content Understanding pro mode with video, or a high water mark policy with Blob Storage.
+5. **Check modality and scope.** Many wrong answers are real features used on the wrong input: Content Understanding pro mode with video (pro mode is documents only), or a high water mark policy with Blob Storage.
 6. **Auth questions.** Prefer keyless, identity-based access (`DefaultAzureCredential`, managed identity) when the scenario mentions Entra ID or "no stored credentials".
 7. **Read all four options.** Distractors are often partly correct; choose the one that meets every stated requirement.
 8. **Review mistakes by reason.** After each practice test, record whether a miss was a knowledge gap or a missed constraint.

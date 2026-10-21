@@ -52,6 +52,15 @@ Answers and explanations come from the [deep dive](../deep-dives/capacity-cost-a
 **Q:** Which factors drive PTU sizing?
 **A:** Request shape, the output-to-input ratio, and the cache rate.
 
+**Q:** What does prompt caching require?
+**A:** A prompt of at least 1,024 tokens whose first 1,024 tokens are identical to an earlier request.
+
+**Q:** Where should variable content go in a prompt that uses caching?
+**A:** At the end; stable content (system message, tools, documents) goes first.
+
+**Q:** Which response field shows a cache hit?
+**A:** `cached_tokens` under `prompt_tokens_details` (0 means a miss).
+
 ## Practice questions
 
 ### 1. A customer-facing copilot has steady, high traffic around the clock and must meet a strict latency SLO. Data may be processed in any region. Which deployment type should you choose?
@@ -201,5 +210,20 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 **Correct: D.** Reservations discount the PTU billing meter but do not guarantee capacity, so confirm capacity by deploying first.
 **Incorrect:** A — deleting a reservation does not create capacity; B — reservations do not guarantee capacity; C — quota is a limit and still does not guarantee availability.
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/provisioned-throughput
+
+</details>
+
+### 11. An app sends a 3,000-token policy document with every 30-token question and needs lower cost and latency without changing answers. What helps most?
+
+- A. Move the question to the start of the prompt
+- B. Keep the document first and identical in every request so prompt caching applies
+- C. Switch to a batch deployment
+- D. Request more quota
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Caching needs an identical prefix of at least 1,024 tokens, so stable content goes first.
+**Incorrect:** A — a changing prefix breaks the cache; C — batch is asynchronous (24-hour target), unsuitable for interactive calls; D — quota affects throughput, not price.
+Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/prompt-caching
 
 </details>

@@ -6,7 +6,7 @@ sources:
   - https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/document/overview
   - https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/classifier
   - https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout
-retrieved: 2026-10-12
+retrieved: 2026-10-21
 ---
 
 # Deep dive: Content Understanding and Document Intelligence
@@ -106,6 +106,17 @@ Values like dates and numbers are **normalized** automatically. Use **confidence
 Learn points to its page "Choose the right Azure AI tool for document processing" for the official comparison.
 
 ---
+
+### Standard mode and pro mode (outline wording)
+
+The skills outline says "single-task and pro-mode". On the Learn pages read on 2026-10-21 (overview and analyzer reference) **neither term appears**; the current pages describe the `config.workflow` setting (`default` or `agentic`) and **standard versus advanced** contextualization rates instead. Use this working model for the exam and `[NEEDS VERIFICATION]` the wording:
+
+| | Standard (single-task) | Pro (multi-step reasoning) |
+|---|---|---|
+| Content | Documents, images, audio, video, text | **Documents only** |
+| Typical job | One analyzer, one schema, one result (video analyzer with a field schema returns transcript fields and on-screen text together) | Reason across several documents or **reference data**, for example check an invoice against a contract |
+
+Rule: do not pick pro mode for video or audio, and do not chain separate pipelines when one standard analyzer covers the modalities. The closest documented feature today is agentic mode below (documents, one input file per request).
 
 ## 6. Agentic mode (preview)
 For answers that must be *built from evidence* (calculations, validations, complex tables), set `config.workflow` to `agentic` (document analyzers, `2026-06-01-preview`, one input file per request). It uses more tokens and time and the **advanced** contextualization rate.

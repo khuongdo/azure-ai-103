@@ -22,6 +22,8 @@ Notes from a second practice test of the same third-party course (it covers diff
 - **Own reasoning**: derived from Azure knowledge, not yet checked against the quiz key or Microsoft Learn. Treat as **[NEEDS VERIFICATION]**.
 - **Not captured**: the answer was not recorded.
 
+Knowledge from this test is now also in the lessons: [prompt caching](../deep-dives/capacity-cost-and-throttling.md), [blob deletion detection](../deep-dives/azure-ai-search-configuration.md), [smartCrops](../deep-dives/multimodal-understanding.md), [Content Understanding modes](../deep-dives/content-understanding-and-document-intelligence.md) and [Azure ML drift monitoring](../deep-dives/observability-and-agent-lifecycle.md), each with quiz questions.
+
 Exam-day technique drawn from this test is in [Reading exam questions](../exam-tips/reading-exam-questions.md#lessons-from-practice-test-2), not here.
 
 ## Build generative applications by using Foundry
@@ -53,7 +55,7 @@ Cost: one extra model call per answer, so higher latency. Azure AI Content Safet
 | Cheaper repeated long static prompt prefix | **Prompt caching** | Confirmed by quiz |
 | DALL-E 3 photographic look, no temporary URL | `style="natural"`, `response_format="b64_json"` | Own reasoning |
 
-**Prompt caching.** It lowers cost and latency when many requests share the same long prefix. The prefix must be at least **1,024 tokens** and **identical** from the start, so put static content (system prompt, documents, tool definitions) first and variable content (the user question) last. Common wrong answers: **batch deployments** are cheaper but asynchronous, so they fail a tight latency target; **quota** changes how much you can send, not what each token costs. [NEEDS VERIFICATION] re-check the 1,024-token figure on Learn before the exam.
+**Prompt caching.** It lowers cost and latency when many requests share the same long prefix. The prefix must be at least **1,024 tokens** and **identical** from the start, so put static content (system prompt, documents, tool definitions) first and variable content (the user question) last. Common wrong answers: **batch deployments** are cheaper but asynchronous, so they fail a tight latency target; **quota** changes how much you can send, not what each token costs. The 1,024-token minimum and identical-prefix rule were **verified on Learn on 2026-10-21** ([prompt caching](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/prompt-caching)). Batch and quota are not discussed on that page; those two points come from the quiz explanation and the deployment-types material.
 
 **DALL-E 3 parameters.** `style` is `vivid` by default; `natural` gives a more photographic result. `response_format` of `b64_json` returns the image in the response body instead of a temporary URL, which suits networks that block the image host. See the [image generation page](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e). [NEEDS VERIFICATION] against the quiz key.
 
@@ -61,10 +63,10 @@ Cost: one extra model call per answer, so higher latency. Azure AI Content Safet
 
 | Topic | Answer | Confidence |
 |---|---|---|
-| Detect production data changing from training data | Azure ML **model monitoring** with a **data drift** signal against a baseline, alert at a threshold, optional retrain trigger | Own reasoning |
+| Detect production data changing from training data | Azure ML **model monitoring** with a **data drift** signal against a baseline, alert at a threshold | Verified on Learn (2026-10-21); the retrain trigger is not on the page read |
 | Agent remembers facts across sessions | A **long-term memory store** scoped per user; thread storage covers one session only | Own reasoning |
 
-For Foundry-side monitoring see [monitor models](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/monitor-models); for agent memory see [what is memory](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory).
+Learn confirms built-in signals (data drift, prediction drift, data quality), scheduled jobs and a default alert email ([Azure ML model monitoring](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-model-performance)). For Foundry-side monitoring see [monitor models](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/monitor-models); for agent memory see [what is memory](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory).
 
 ## Build retrieval and grounding pipelines
 
@@ -84,9 +86,9 @@ For Foundry-side monitoring see [monitor models](https://learn.microsoft.com/en-
 | Video: transcript fields and on-screen text in one result | Content Understanding **standard mode** video analyzer with a **field schema** | Confirmed by quiz |
 | Crop a photo to a square around the subject | Image Analysis 4.0 **`smartCrops`** with aspect ratio `1.0`, apply the returned bounding box | Confirmed by quiz |
 
-**Content Understanding modes.** Standard mode handles documents, images, audio, video and text. **Pro mode** (multi-step reasoning, multiple input files, reference data) is for **documents only**, so it is wrong for video. One analyzer with a field schema returns everything in one structured result, so chaining separate speech, OCR and LLM pipelines is unnecessary. Sources: [overview](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/overview), [video](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview).
+**Content Understanding modes.** Standard mode handles documents, images, audio, video and text. **Pro mode** (multi-step reasoning, multiple input files, reference data) is for **documents only**, so it is wrong for video. One analyzer with a field schema returns everything in one structured result, so chaining separate speech, OCR and LLM pipelines is unnecessary. **Caveat:** the Learn overview and analyzer reference read on 2026-10-21 do not use the terms "standard mode" or "pro mode"; they describe `config.workflow` (`default` or `agentic`, agentic being preview and document-only). The mode wording here comes from the quiz explanation, so treat it as `[NEEDS VERIFICATION]`. Sources: [overview](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/overview), [video](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview).
 
-**Smart crops.** `smartCrops` returns suggested crop rectangles for the aspect ratios you request. `tags`, `objects` and `denseCaptions` describe content but return no framing rectangle for a target ratio.
+**Smart crops.** `smartCrops` returns suggested crop rectangles for the aspect ratios you request (supported range 0.75 to 1.8 inclusive; checked on [Learn](https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/call-analyze-image-40) on 2026-10-21). `tags`, `objects` and `denseCaptions` describe content but return no framing rectangle for a target ratio.
 
 ## Not captured yet
 
@@ -108,7 +110,7 @@ Answers were not recorded for these questions. Open each in review mode after an
 
 ## Open items
 
-1. Verify every **own reasoning** row against the quiz key and Microsoft Learn (reflection, grounded prompt, DALL-E 3 parameters, drift monitoring, long-term memory).
+1. Verify the remaining **own reasoning** rows against the quiz key and Microsoft Learn (reflection, grounded prompt, DALL-E 3 parameters, long-term memory).
 2. Fill in the **not captured** list above.
-3. Confirm the 1,024-token prompt caching minimum on the current Learn page.
+3. Confirm the "standard" and "pro" mode wording for Content Understanding (not found on current Learn pages).
 4. Confirm the target exam name: the repo is `azure-ai-103` and the quiz is AI-103; the "az-103" name in the source chat appears to be a slip.

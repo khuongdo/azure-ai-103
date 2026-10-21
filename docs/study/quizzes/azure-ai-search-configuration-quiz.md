@@ -34,6 +34,15 @@ Based on the [deep dive](../deep-dives/azure-ai-search-configuration.md).
 **Q:** What identity should indexers use to reach data sources?
 **A:** Managed identity.
 
+**Q:** Does a blob indexer detect deleted blobs automatically?
+**A:** No. Change detection is automatic, but deletion needs a soft delete policy (native blob soft delete or a custom metadata property).
+
+**Q:** When must the deletion policy be configured?
+**A:** Before the first indexer run; earlier deletions stay in the index.
+
+**Q:** Which change detection policy is for databases, not Blob Storage?
+**A:** High water mark.
+
 ## Practice questions
 
 ### 1. An enrichment pipeline runs but the OCR text never appears in the index. What is missing?
@@ -93,5 +102,20 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
 **Correct: D.** It decomposes the query using chat history and runs subqueries in parallel.
 **Incorrect:** the other options do not fit — do not plan subqueries.
 Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview
+
+</details>
+
+### 5. Users still find documents in Azure AI Search after their source blobs were deleted. The indexer runs hourly. What should you configure?
+
+- A. A faster indexer schedule
+- B. A deletion detection policy based on a custom metadata property, then flag blobs before deleting them
+- C. A high water mark policy on the data source
+- D. Enrichment caching
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Indexers do not track deletions; a soft delete policy removes the search document first.
+**Incorrect:** A — a faster schedule still never sees deletions; C — high water mark is for databases; D — caching saves enrichment cost only.
+Source: https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted
 
 </details>
