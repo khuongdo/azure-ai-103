@@ -34,6 +34,12 @@ Based on the [deep dive](../deep-dives/content-understanding-and-document-intell
 **Q:** When use confidence and grounding?
 **A:** Route low-confidence fields to human review.
 
+**Q:** Which content types can pro mode (multi-step reasoning) handle?
+**A:** Documents only (per the study material; the current Learn pages describe agentic mode for documents instead) `[NEEDS VERIFICATION]`.
+
+**Q:** One analyzer must return transcript-based fields and on-screen text from videos. What do you use?
+**A:** A video analyzer with a field schema (standard processing), not separate pipelines.
+
 ## Practice questions
 
 ### 1. A PDF packet contains a loan form, pay slip and bank statement. How do you classify and extract each?
@@ -93,5 +99,20 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 **Correct: A.** models expects model names, not deployment names.
 **Incorrect:** the other options do not fit — not the cause.
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference
+
+</details>
+
+### 5. A pipeline must pull spoken-topic fields and on-screen text from training videos into one structured result. What is the simplest design?
+
+- A. One Content Understanding video analyzer with a field schema
+- B. Pro mode with reference documents
+- C. Speech to text, then OCR frames, then a custom LLM merge
+- D. Document Intelligence Layout
+
+<details><summary>Answer</summary>
+
+**Correct: A.** A video analyzer with a field schema returns both in one result.
+**Incorrect:** B — pro mode is for documents; C — extra moving parts for something one analyzer does; D — Layout reads documents, not video.
+Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview
 
 </details>

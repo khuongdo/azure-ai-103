@@ -7,7 +7,8 @@ sources:
   - https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization
   - https://learn.microsoft.com/en-us/azure/search/search-security-built-in
   - https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview
-retrieved: 2026-10-12
+  - https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted
+retrieved: 2026-10-21
 ---
 
 # Deep dive: configuring Azure AI Search
@@ -43,6 +44,18 @@ Rules: one indexer uses **one data source** and writes to **one index**. Many in
 **Change detection:** automatic for blobs; must be enabled for Azure SQL and Cosmos DB. First run reads everything; later runs read the delta.
 
 **Monitoring:** indexer status in the portal or the Get Indexer Status API; then run a query to verify results. A search service runs **one indexer job per search unit**, so add replicas for concurrency. Indexers have no dedicated compute, so run times vary and heavy indexing can cause query throttling.
+
+### Changed and deleted blobs
+
+- **Changed or new blobs** are picked up automatically: the indexer compares the built-in last-modified timestamp of each blob with what it already indexed.
+- **Deleted blobs are not detected.** An indexer does not track deletion in the data source, so a blob you delete leaves an orphan document in the index. The fix is a **soft delete strategy**: remove the search document first, then delete the file.
+- Two ways to do it:
+  1. **Native blob soft delete** (Blob Storage only): enable soft delete on the storage account, set a `NativeBlobSoftDeleteDeletionDetectionPolicy` on the data source, and keep the retention period well above the indexer interval. Blob versioning must be off. The indexer removes a document only if it processes the blob while it is in the soft-deleted state.
+  2. **Custom metadata**: add a metadata key such as `IsDeleted` = `false` to each blob. Set it to `true` to delete. The data source carries a `SoftDeleteColumnDeletionDetectionPolicy` with `softDeleteColumnName` and `softDeleteMarkerValue`. Run the indexer, then physically delete the blob.
+- Set the policy **before the first indexer run**; documents deleted earlier stay in the index even after you add the policy and reset. It does not work for one-to-many indexing; delete those documents through the index API.
+- A **high water mark** policy is a change-detection policy for databases (Azure SQL, Cosmos DB), not a blob deletion fix. A faster schedule or enrichment caching does not detect deletions either.
+
+*Example:* the legal team deletes `contract-17.pdf` from the container but search still returns it. With no deletion policy the indexer never learns about it. With the `IsDeleted` policy, set `IsDeleted=true`, run the indexer, confirm the document is gone from the index, then delete the blob.
 
 *What can go wrong:* index field type mismatch, missing output field mapping (enrichment silently not indexed), no change detection (full reread), throttled embedding calls.
 

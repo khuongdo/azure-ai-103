@@ -6,7 +6,8 @@ sources:
   - https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview
   - https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference
   - https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/gpt-with-vision
-retrieved: 2026-10-12
+  - https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/call-analyze-image-40
+retrieved: 2026-10-21
 ---
 
 # Deep dive: multimodal understanding
@@ -117,6 +118,7 @@ About **1 frame per second** is sampled and frames are resized to **512×512**; 
 
 ## 4. Older and related tools
 - **Image Analysis 4.0** (captions, tags, OCR, object detection) retires **September 25, 2028**; plan migration for new work toward models or CU.
+- **Smart crops in Image Analysis 4.0.** To crop a photo around its subject for a target shape (thumbnail, square avatar, banner), request the **`smartCrops`** visual feature. Pass one or more **aspect ratios** (`smartcrops-aspect-ratios` in REST; width divided by height, supported **0.75 to 1.8** inclusive, for example `1.0` for a square). The response gives one **bounding box** per ratio, and you apply the crop in your own code. If you omit ratios, the service returns one suggestion with a ratio between 0.5 and 2.0. `tags`, `objects` and `denseCaptions` describe content but return no crop rectangle for a target ratio.
 - **Azure Video Indexer** remains available for media-library features. `[NEEDS VERIFICATION]` clip API fields.
 - **Azure Vision multimodal embeddings** (preview skill in Azure AI Search) embed text and images in one vector space for image search.
 

@@ -34,6 +34,12 @@ Based on the [deep dive](../deep-dives/multimodal-understanding.md).
 **Q:** Risk of text in images?
 **A:** Indirect prompt injection.
 
+**Q:** Which Image Analysis 4.0 feature suggests crop rectangles for a target shape?
+**A:** `smartCrops`, with aspect ratios (width / height, 0.75 to 1.8).
+
+**Q:** What does smartCrops return?
+**A:** A bounding box per requested aspect ratio; you apply the crop yourself.
+
 ## Practice questions
 
 ### 1. Users need to find a moment in a video library. What?
@@ -93,5 +99,20 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 **Correct: D.** Markdown with transcript and key frames plus JSON.
 **Incorrect:** the other options do not fit — wrong.
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview
+
+</details>
+
+### 5. You need square thumbnails centered on the main subject of product photos using Image Analysis 4.0. What do you request?
+
+- A. The `objects` feature
+- B. The `tags` feature
+- C. The `smartCrops` feature with aspect ratio 1.0, then apply the returned bounding box
+- D. The `denseCaptions` feature
+
+<details><summary>Answer</summary>
+
+**Correct: C.** `smartCrops` returns suggested crop rectangles for the aspect ratios you give.
+**Incorrect:** A, B, D — they describe content but give no crop rectangle for a target ratio.
+Source: https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/call-analyze-image-40
 
 </details>
