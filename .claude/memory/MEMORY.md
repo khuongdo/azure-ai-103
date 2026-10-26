@@ -1,2 +1,3 @@
 - [Explain every step](explain-every-step-in-study-docs.md) — in study docs, explain each step of any pipeline/flow/diagram in detail, with examples; not just lists
 - [Language and structure](study-docs-language-and-structure.md) — Vietnamese chat, English docs/code, exam tips separate, public repo, confirm before push
+- [Mock exam requirements](mock-exam-requirements.md) — mock exams: modeled on real exam, 50 questions by domain weight, timer, grade at end, explain right and wrong options; use the ai103-mock-exam skill

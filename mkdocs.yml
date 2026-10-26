@@ -109,6 +109,13 @@ nav:
     - Overview: study/exam-tips/index.md
     - Reading exam questions: study/exam-tips/reading-exam-questions.md
     - Traps and patterns by topic: study/exam-tips/traps-and-patterns-by-topic.md
+    - Mock exams:
+      - Overview and how it works: study/practice-tests/index.md
+      - Mock exam 1: study/practice-tests/mock-exam-1.md
+      - Mock exam 2: study/practice-tests/mock-exam-2.md
+      - Mock exam 3: study/practice-tests/mock-exam-3.md
+      - Mock exam 4: study/practice-tests/mock-exam-4.md
+      - Mock exam 5: study/practice-tests/mock-exam-5.md
     - Practice test 1 review: study/practice-tests/practice-test-1-review.md
     - Practice test 2 review: study/practice-tests/practice-test-2-review.md
     - Practice test 4 review: study/practice-tests/practice-test-4-review.md
@@ -118,6 +125,7 @@ nav:
 markdown_extensions:
   - nl2br
   - admonition
+  - attr_list
   - pymdownx.tabbed:
       alternate_style: true
   - tables

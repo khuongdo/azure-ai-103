@@ -1,0 +1,459 @@
+@id: mock-4
+@title: AI-103 Mock Exam 4
+@short: Mock exam 4
+@description: Full-length mock exam with 50 scenario questions. This test leans toward troubleshooting and security: reasoning-model settings, virtual network rules, quota and TPM limits, CI/CD pipelines, guardrail behavior, Speech and Translator customization, and Azure AI Search security.
+
+=== D1 single
+Q: A voice assistant uses a reasoning model for short intent classification, and users complain about a long pause before every answer. Accuracy is already high. Which change reduces latency the most?
++ Set `reasoning_effort` to `none` for this latency-critical task :: Reasoning models produce hidden reasoning tokens before the first visible token. A lower effort (or `none`) removes most of that wait.
+- Add "think step by step" to the prompt :: This adds tokens and is not recommended for reasoning models.
+- Increase `max_output_tokens` to 100,000 :: A larger cap does not make the model faster.
+- Move the deployment to Batch :: Batch is asynchronous with a 24-hour target.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/reasoning
+REF: model-and-service-selection, capacity-cost-and-throttling
+
+=== D1 single
+Q: A product team plans to run a production workload on a model labeled Preview because it has the best benchmark results. Which risk should you point out, based on the model lifecycle?
++ Models move from Preview to GA, then Deprecated and Retired; production workloads need a GA model and a replacement plan, with notices and pinned versions :: When a model retires, deployments stop working, as happened with `dall-e-3` on March 4, 2026.
+- Preview models are always more expensive than GA models :: Price is not the lifecycle risk.
+- Preview models cannot be deployed in Foundry :: They can be deployed, but they are not meant for production.
+- Benchmarks are invalid for Preview models :: Benchmarks exist but do not replace testing on your own data.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/foundry-models-overview
+REF: model-and-service-selection
+
+=== D1 multi
+Q: You prepare the virtual network subnet for agent runtime injection in a Foundry resource. Which TWO requirements apply?
++ The subnet is delegated to `Microsoft.App/environments` and is dedicated to this Foundry resource :: Missing delegation causes provisioning failures, and the agent subnet cannot be shared between Foundry resources.
++ The Foundry resource is in the same region as the virtual network :: Other resources may be elsewhere, but the Foundry resource must match the VNet region.
+- The subnet is shared with the application's virtual machines to save address space :: The agent subnet is dedicated per Foundry resource.
+- The subnet overlaps with the peered on-premises network :: Overlapping ranges with peered networks are not allowed.
+- The subnet is a /29 range :: A /24 is recommended and the minimum for portal injection is /27.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A team plans hosted agents in a locked-down environment. After the Foundry account was created, they try to add network injection and find that it cannot be added. What is the rule?
++ For hosted agents, network injection must be set when the Foundry account is first created :: It cannot be added later, so plan the network design before creating the account.
+- Network injection can be added at any time in the portal :: Learn states that it must be set at creation for hosted agents.
+- Hosted agents do not support any network configuration :: They support it, at account creation.
+- It is only possible with a new subscription :: The restriction is about account creation, not subscriptions.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A chat application hits its tokens-per-minute limit at peak. Metrics show that most tokens are input tokens: a long system prompt, ten retrieved chunks and the full chat history are sent with every call. What should you do first?
++ Shrink the prompt: shorten the system prompt, send fewer or smaller chunks and summarize old turns :: Prompt tokens are most of the traffic, and trimming them is cheaper than quota or PTU.
+- Buy Provisioned capacity immediately :: This is a larger commitment before checking the cheaper fix.
+- Increase `max_output_tokens` :: Output is not the problem here.
+- Retry every request three times :: More requests add more tokens and make throttling worse.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/quotas-limits
+REF: capacity-cost-and-throttling
+
+=== D1 single
+Q: A new deployment fails, and the Quota page shows 0 available for the model and deployment type. Another deployment in the subscription holds quota but is unused. What should you do?
++ Move quota from the unused deployment, or submit a quota increase request :: Both are documented ways to get more limit. Requests are evaluated individually.
+- Buy a reservation :: A reservation is a discount and does not add quota.
+- Add more custom headers to the request :: More than 10 custom headers returns HTTP 431.
+- Wait for the quota to reset at midnight :: Quota is an allocation, not a daily counter.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/quotas-limits
+REF: capacity-cost-and-throttling
+
+=== D1 single
+Q: A security team wants alerts when users try to jailbreak the company's AI services or when data may be leaking from them. Which service provides this?
++ Microsoft Defender for AI services :: It raises alerts on jailbreak attempts and data leakage.
+- Azure Policy :: It enforces configuration rules and does not detect attacks.
+- Azure Bastion :: It gives secure remote access to virtual machines.
+- Content provenance detection :: It checks where content came from.
+SRC: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
+REF: platform-network-and-reliability, agent-safety-and-identity
+
+=== D1 single
+Q: You want to evaluate whether an agent used its tools efficiently compared with an expected sequence of tool calls, accepting `exact_match`, `in_order_match` or `any_order_match`. Which evaluator and prerequisite apply?
++ Task Navigation Efficiency, which needs ground truth (the expected sequence) :: It compares the agent's tool steps with an expected sequence.
+- Tool Call Success, which needs no data :: It checks only whether a call technically succeeded.
+- Intent Resolution, which needs a judge deployment only :: It checks whether the agent understood the user's intent.
+- Customer Satisfaction, which compares with the system prompt :: It rates helpfulness, tone and resolution from the user's view.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
+REF: observability-and-agent-lifecycle
+
+=== D1 single
+Q: Operations wants a live view of token consumption, latency, error rates and quality scores for production agents, with alerts when outputs fail quality thresholds. What should they use?
++ The Foundry observability dashboard integrated with Application Insights, plus Azure Monitor alerts :: It shows operational metrics and quality scores in real time and supports alerts.
+- Only the model catalog benchmarks :: Benchmarks describe models, not your production traffic.
+- A one-time evaluation before launch :: It does not monitor production.
+- The CI pipeline logs :: They show build results, not production behavior.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability
+REF: observability-and-agent-lifecycle
+
+=== D1 multi
+Q: A GitHub Actions pipeline deploys a hosted agent with the Azure Developer CLI. Which TWO practices follow the guidance?
++ Authenticate with GitHub OIDC federated credentials so that no secret is stored :: Federated credentials remove stored secrets.
++ Use a concurrency group so that two runs never deploy at the same time :: It serializes deployments.
+- Store a service principal secret in the repository :: This is exactly what OIDC avoids.
+- Skip evaluation because deployment succeeded :: The pipeline should fail the run when scores fall below thresholds.
+- Run deployment manually from a laptop to stay flexible :: A pipeline gives repeatability and review.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/set-up-ci-cd-cli
+REF: cicd-for-foundry-projects
+
+=== D1 single
+Q: A team wants to compare two agent versions with statistical confidence in a GitHub workflow and is worried about the cost of repeated evaluations. Which guidance applies to the evaluation GitHub Action?
++ List both agents as `name:version`; the first is the baseline by default; do not run it on every commit, to control cost :: Learn advises against running it on every commit and suggests running full evaluations on release candidates.
+- Run it on every commit with the full dataset :: It increases cost.
+- Pass only the agent name without a version :: Agents are identified as `agent-name:version`.
+- It cannot compare agents :: Listing several agents compares them, with confidence intervals and pairwise comparisons.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/how-to/evaluation-github-action
+REF: cicd-for-foundry-projects
+
+=== D1 single
+Q: A music-lyrics assistant must be checked for output that reproduces copyrighted song lyrics, recipes or published articles. Which evaluator should you add?
++ Protected Materials :: It detects copyrighted text or code in the output, including lyrics, articles and recipes.
+- Code Vulnerability :: It looks for insecure patterns in generated code.
+- Ungrounded Attributes :: It detects inferring protected traits not present in the context.
+- Indirect Attack :: It detects hidden instructions in content.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators
+REF: responsible-ai-governance
+
+=== D1 single
+Q: Which statement about the risk and safety evaluators for harm categories (hate and unfairness, sexual, violence, self-harm) is correct?
++ Scores range from 0 to 7, the default threshold is 3, and a case passes if the score is less than or equal to the threshold :: A defect is a score above the threshold.
+- Scores range from 1 to 5 and 3 fails :: The 1 to 5 range belongs to many LLM-judge quality evaluators.
+- Scores are 0 or 1 only :: The harm evaluators return severity scores.
+- A case passes only if the score is higher than the threshold :: The direction is reversed. A lower score is safer.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A line-of-business application only needs to call published agent endpoints. Developers should be able to build in the project, and one lead should publish agents. Which role assignment follows least privilege?
++ Foundry Agent Consumer for the application, Foundry User for developers and Foundry Project Manager for the lead :: Consumer calls agents only, User builds in a project, and Project Manager can publish agents.
+- Foundry Owner for everyone :: This gives broad privileges to all.
+- Foundry Account Owner for developers :: Account Owner manages accounts and models but cannot build in projects.
+- The Azure AI Developer role for the application :: This role is not recommended for Foundry projects.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/rbac-foundry
+REF: agent-safety-and-identity, platform-network-and-reliability
+
+=== D2 single
+Q: A team wants hosted agents and multi-agent systems written in code (Python or .NET) that run in Foundry as hosted agents. Which SDK or framework should they use?
++ Microsoft Agent Framework :: It provides agents, graph-based workflows, middleware, tools and MCP clients, and its workflows can run in Foundry as a hosted agent.
+- Speech SDK :: It is for speech scenarios.
+- Foundry Tools SDK for Content Safety :: It is for content safety calls.
+- OpenAI SDK for images :: It is for image calls.
+SRC: https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview
+REF: foundry-sdk-and-generative-apps, building-agents-with-foundry
+
+=== D2 single
+Q: A prompt for a non-reasoning model asks it to decide which of three suppliers is cheapest after tax. Answers are sometimes wrong. Which technique should you add?
++ Chain of thought: ask for step-by-step reasoning before the final answer, in a fixed format such as "ANSWER is: <name>" :: It reduces errors and makes review easier on non-reasoning models.
+- Raise the temperature to 1.5 :: More randomness reduces consistency.
+- Remove all instructions :: The model needs clear instructions.
+- Use `reasoning_effort=max` on the same non-reasoning model :: This setting belongs to reasoning models.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: A fact-checking tool asks the model to "fact-check this paragraph" and the results are shallow. Which prompt-design change does Microsoft guidance suggest?
++ Break the task into two steps: first extract the factual claims, then write a search query for each claim :: Each step is easier to perform and to inspect.
+- Make the prompt a single very long sentence :: Complexity hurts clarity.
+- Tell the model never to be wrong :: This is vague and has no effect.
+- Increase `max_output_tokens` :: A larger cap does not change how the task is structured.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: A knowledge assistant's instruction says "Do not fabricate information", but reviewers still find invented facts. Which instruction change is more effective?
++ Ask for inline citations next to each claim, so an invented statement needs a false claim and a false citation, and checking becomes easy :: Citations make fabrication harder and verification simple. Closer citations work better than a list at the end.
+- Repeat "do not fabricate" ten times :: Weak instructions do not become stronger by repetition.
+- Remove the retrieved context :: The model then relies on memory.
+- Raise the temperature :: This increases invention.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: Retrieval evaluators show low scores. Reading sample chunks, you find that each chunk covers many unrelated topics and ranks poorly for specific questions. Which step is at fault and what is the fix?
++ Chunking: the chunks are too large and their meaning is blurred; tune the size and overlap (for example start from 512 tokens with 25% overlap) :: Large chunks produce a vector that blends topics and a prompt full of noise.
+- Generation: lower the temperature :: Generation cannot fix poor retrieval.
+- Reranking: disable the semantic ranker :: The ranker cannot rescue a chunk that blurs meaning.
+- Logging: store more traces :: Logs help diagnose but do not change retrieval.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: A RAG assistant should answer only when retrieval confidence is high and otherwise reply "not found". Semantic ranker scores range from 0 to 4. Which design is most appropriate?
++ Apply a score threshold on the reranker score (kept coarse, because score distributions can shift slightly) and return "not found" below it :: A relevance threshold raises precision at the cost of recall.
+- Always answer and rely on a polite tone :: Low-confidence answers would still be shown.
+- Use `orderby` to put the best document first :: Explicit sorting overrides relevance ranking.
+- Set a very fine threshold such as 3.2137 :: Scores can shift slightly with infrastructure or model updates, so fine-grained thresholds are fragile.
+SRC: https://learn.microsoft.com/en-us/azure/search/semantic-search-overview
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: Which similarity metric should you configure for a vector field that holds Azure OpenAI embeddings in Azure AI Search?
++ `cosine` :: It is the recommended metric for Azure OpenAI embeddings. The vector score for cosine is `1 / (1 + cosine_distance)`.
+- `hamming` :: It is for binary vectors.
+- Any metric, because the result is the same :: The metric must match how the embedding model was trained.
+- `jaccard` :: It is a set similarity, not a vector metric in this configuration.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-ranking
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: A developer wants the model to return a text field that must match a regular expression and have a minimum length, using strict Structured Outputs. What should they do?
++ Enforce `pattern` and `minLength` in application code, because these keywords are not supported in the strict schema subset :: Unsupported keywords include `minLength`, `maxLength`, `pattern`, `format`, `minimum` and `maximum`.
+- Add `pattern` and `minLength` to the schema and trust the service to enforce them :: They are not supported in strict mode.
+- Switch to JSON mode, which enforces patterns :: JSON mode only guarantees valid JSON.
+- Increase the temperature so the model varies the text :: Randomness does not enforce patterns.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured-outputs
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: An engineer tries to add a function definition to a Foundry agent in the portal and cannot find the option. What is the situation?
++ The portal cannot add, edit or remove function definitions; use the SDK or REST API. The portal can run an agent that already has them, but it does not execute your function :: Function tools are defined in code and executed by your application.
+- The agent type does not support functions :: Prompt agents support function tools.
+- A Provisioned deployment is required :: Deployment type is unrelated.
+- The function must be written in the system prompt :: Prompts do not define callable functions.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: A memory store keeps user profile facts. The privacy officer wants the extractor to avoid age, financial information, precise location and credentials, and old entries to expire automatically. Which settings apply?
++ `user_profile_details` with instructions on what to avoid, and `default_ttl_seconds` for retention :: These settings tell the extractor what not to store and set a default lifetime for new entries.
+- `chat_summary_enabled` set to false :: This disables summaries, not sensitive profile data.
+- A shared static scope for all users :: It removes isolation.
+- Put the rules in the system prompt only :: The extractor needs its own guidance, and prompts do not control retention.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: A team asks in which order to add capabilities to a new customer agent. Which order follows the recommended build order?
++ One agent with one or two tools and a golden test set, then retrieval, then memory, then approvals for risky tools, then tracing and evaluators, and only then multiple agents :: Add complexity step by step and measure after each.
+- Multiple agents first, tools later :: Orchestration adds complexity before the basics work.
+- Memory first, then a single tool :: Memory is useful after repeated users appear and the base works.
+- Publish first, test later :: Publishing before testing exposes users to problems.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/overview
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: An agent worker looks up its agent by name at startup and creates it only if the lookup returns 404. Later, a call with the stored agent ID returns 404 although the ID worked yesterday. What is the correct handling?
++ Treat the 404 for a previously valid ID as terminal: the agent was deleted, so recreate it (get-or-create) instead of retrying in a loop :: Retrying a deleted resource never succeeds. Define agents as code so they can be recreated reliably.
+- Retry with exponential backoff until the agent reappears :: Backoff is for throttling, and a deleted agent does not return.
+- Increase the deployment quota :: Quota errors are 429, not 404.
+- Rename the agent in the portal :: A saved agent's name cannot change, and renaming does not restore it.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
+REF: observability-and-agent-lifecycle, building-agents-with-foundry
+
+=== D2 single
+Q: A guardrail has a Violence control in annotate-only mode. The response annotation shows `detected: true, filtered: false`. What does it mean?
++ The content was detected at or above the threshold but allowed through; annotate mode is useful for tuning false positives before turning blocking on :: `detected` means seen, `filtered` means blocked.
+- The content was blocked :: A blocked item has `filtered: true`.
+- The guardrail is not assigned :: Then there would be no annotation.
+- The content was safe :: Safe content is annotated but never filtered and is not flagged as detected.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: You add a Groundedness control to a guardrail that is assigned to both a model deployment and an agent. The control works for the model but never blocks anything for the agent. Why?
++ Groundedness is not yet supported for agents; a control with an unsupported risk silently does not take effect for the agent :: Groundedness applies to models only, while the same guardrail still works for models.
+- The agent's temperature is too low :: Temperature does not affect a guardrail.
+- The agent uses a Provisioned deployment :: Deployment type does not matter.
+- Guardrails need a separate Azure Policy to run :: Guardrails are assigned directly.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview
+REF: agent-safety-and-identity
+
+=== D2 multi
+Q: You add tool call and tool response controls to an agent's guardrail. Which TWO statements are correct?
++ They work only with tools that support moderation, such as Azure AI Search, Azure Functions, OpenAPI, SharePoint grounding, Fabric Data Agent, Bing grounding, Bing Custom Search and Browser Automation :: For other tools these controls do nothing.
++ Each intervention point adds roughly 50 to 100 ms of latency :: It depends on content length and the number of controls.
+- They scan every tool, including all MCP servers :: Only tools that support moderation are covered.
+- They are GA for agents and models alike :: Tool call and tool response controls are preview and for agents only.
+- They replace the need to enforce limits in tool code :: Prompts and filters guide, while code and permissions enforce.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: A long-running Microsoft Agent Framework workflow must survive a process restart and resume from where it stopped. What should you use?
++ Workflow checkpoints, saved at the end of each superstep, resumed from a `checkpoint_id`, with Azure Cosmos DB as the production store :: A checkpoint captures executor state, pending messages and shared state.
+- Keep the state in a local variable :: It is lost on restart.
+- Increase the model's context window :: Context size is not workflow state.
+- Use a higher `temperature` :: It does not preserve state.
+SRC: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints
+REF: building-agents-with-foundry
+
+=== D3 single
+Q: A request for a photorealistic image of a minor is blocked by the image generation service. Which statement is correct?
++ Photorealistic images of minors are blocked by default; access needs a request form (enterprise-tier customers are auto-approved) :: This is a built-in responsible AI control.
+- The block is a quota error that will clear after a few minutes :: This is a policy block, not a quota error.
+- The block disappears when you set `quality` to `low` :: Quality does not affect the policy.
+- The request must be sent with `output_format=JPEG` :: The format is not related.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation, responsible-ai-for-multimodal-content
+
+=== D3 multi
+Q: A designer asks for a logo with a transparent background and a small file for the web. Which TWO statements about gpt-image output options are correct?
++ Transparent backgrounds need PNG output :: `background` can be `transparent` only with PNG.
++ `output_compression` (0 to 100) applies to JPEG only :: It does not change PNG output.
+- WEBP output is supported with `output_compression` :: WEBP is not supported.
+- JPEG output supports a transparent background :: JPEG has no alpha channel.
+- The response returns a URL valid for one hour :: The gpt-image models return base64 in `b64_json`.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 single
+Q: An e-commerce team wants to merge a product photo and three style reference images into one edited image. Which limits apply to the image edit endpoint?
++ Up to 16 input images in `image[]`, each under 50 MB and PNG or JPG; the mask must have the same dimensions as the input :: These are the documented edit limits.
+- Only one image per request, under 4 MB :: Multiple images are supported.
+- Any image format, including WEBP and TIFF :: The documented formats are PNG and JPG.
+- A mask with any size :: The mask must match the input dimensions.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 single
+Q: A Content Understanding analyzer for ads uses `enableSegment: true` to split videos into "ads" and "game play" segments. The team asks for three categories. What applies?
++ For video only one content category is supported, and segmentation uses tokens, so it adds cost :: Video segmentation takes a single natural-language category description.
+- Video supports up to 200 categories :: The 200-category limit is for document classification.
+- Segmentation is free and unlimited :: It uses tokens.
+- Segmentation works only for audio :: It works for video here.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview
+REF: multimodal-understanding, content-understanding-and-document-intelligence
+
+=== D3 single
+Q: A vision chat model describes details in a photo that are not actually visible (for example the brand of a blurry product). Which prompt change reduces this?
++ Instruct it to describe only what is visible and to say "not visible" when something cannot be seen :: Giving the model an out reduces invented details. For small text, also provide a higher-resolution image.
+- Raise the temperature :: This increases invented details.
+- Remove the question text :: The model needs a clear task.
+- Ask it to guess brands from context :: Guessing increases errors.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/gpt-with-vision
+REF: multimodal-understanding
+
+=== D3 single
+Q: A legacy application uses Image Analysis 4.0 for captions, tags and OCR. What should the team plan?
++ Migration toward vision-capable models or Content Understanding before Image Analysis 4.0 retires on September 25, 2028 :: It still works until then, but new work should use models or Content Understanding.
+- Immediate removal, because the feature is already retired :: It retires in 2028.
+- No action, because retirement dates never apply to Azure features :: Retirement notices do apply.
+- Migration to Custom Translator :: That is a translation service.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/call-analyze-image-40
+REF: multimodal-understanding
+
+=== D3 single
+Q: A team filters only the text prompt before sending it to an image generator and ships the images directly. Reviewers find an image with unwanted content produced from a harmless prompt. What is the gap?
++ Filters must apply on both sides: the prompt going in and the generated media coming out :: A harmless prompt can still produce a flagged image, so the output needs its own filter and review.
+- The prompt filter threshold should be higher :: The input was harmless, so the gap is on the output side.
+- Image severity uses a scale from 0 to 100 :: Image severity uses 0, 2, 4 and 6.
+- Filtering is not needed for images :: Content safety classifies text and images.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories
+REF: responsible-ai-for-multimodal-content
+
+=== D4 single
+Q: Which feature is listed among the core Azure Language capabilities without a retirement notice, so it remains a good choice for a new project that must find and mask social security numbers?
++ PII detection :: It is listed as a core feature, together with language detection, named entity recognition and text analytics for health.
+- Sentiment analysis :: It retires on March 31, 2029.
+- Key phrase extraction :: It retires on March 31, 2029.
+- Conversational language understanding :: It retires on March 31, 2029.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/overview
+REF: text-analysis-language-and-llms
+
+=== D4 single
+Q: An insurer must extract policy numbers like `POL-2026-00417` from claim emails. The prebuilt NER categories (Person, Location, Organization, DateTime, Quantity) do not include them. Which option fits?
++ Custom named entity recognition trained on labeled examples :: Use custom NER when prebuilt categories do not cover what you need.
+- Prebuilt NER with a larger confidence threshold :: The category does not exist, so a threshold does not help.
+- Language detection :: It identifies languages only.
+- Sentiment analysis :: It labels sentiment.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/overview
+REF: text-analysis-language-and-llms
+
+=== D4 single
+Q: A team wants to start with conversational language understanding quickly, with no labeled data. Which path is documented?
++ The LLM-powered quick deploy: define the schema with intent descriptions, deploy, then predict intents and prebuilt entities :: It skips labeling and training. The custom machine-learned path needs labeled utterances and training.
+- Train a custom model first, then define the schema :: The custom path defines the schema first, then labels and trains.
+- Use Custom question answering because it extracts intents :: It answers questions from a knowledge base.
+- Use batch transcription :: It converts audio to text.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/conversational-language-understanding/overview
+REF: text-analysis-language-and-llms
+
+=== D4 single
+Q: A batch transcription job must label speakers in a meeting with 6 participants, using mono audio. Which setting should you use?
++ Diarization with minimum and maximum speaker counts (up to 35 speakers) instead of the simple two-speaker setting :: `diarizationEnabled` handles two speakers, and min/max settings handle three or more on mono audio.
+- `diarizationEnabled` only :: It is for two speakers.
+- Stereo audio with diarization :: Diarization needs mono audio.
+- Text to speech with six voices :: It produces audio and does not label speakers in a recording.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription-create
+REF: speech-solutions
+
+=== D4 single
+Q: A call-center app translates live speech into four languages at the same time with the Speech service. Which statement is correct?
++ The Speech service translates directly into two target languages; for more, use a Foundry (multi-service) resource, where translation fees apply for each language beyond the second :: This is the documented limit for speech translation.
+- Speech translation supports unlimited targets with no extra cost :: There is a limit of two direct targets.
+- Speech translation cannot be used with custom speech models :: Custom speech models can be used with speech translation.
+- Only Translator document translation can handle live audio :: Document translation handles files.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-translation
+REF: speech-solutions
+
+=== D4 single
+Q: A team has a large parallel corpus of English and German product text from a stable domain and wants a custom neural machine translation system that can be measured by BLEU. Which option fits?
++ Custom Translator, which trains a custom NMT system from parallel documents and reports a BLEU score :: Gains of 5 to 10 BLEU points are common with suitable data.
+- Glossary only :: A glossary maps fixed terms and does not train a model.
+- Adaptive custom translation with five pairs :: It adapts an LLM from 5 to 10,000 aligned pairs, which is not a trained NMT system.
+- Transliterate :: It converts script, not languages.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/custom-translator/overview
+REF: translation
+
+=== D4 single
+Q: A voice team uses HD voices and wants to use all SSML tags they used with standard neural voices. What should they know?
++ Some SSML tags are not supported for HD voices, personal voices and embedded voices, so test the markup with the chosen voice :: This is a documented limitation.
+- All SSML tags work identically for all voices :: This is not true for HD voices.
+- HD voices cannot be used with SSML at all :: Some SSML tags are supported.
+- SSML is only for speech recognition :: SSML controls speech synthesis.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech
+REF: speech-solutions
+
+=== D5 single
+Q: An indexer reads rows from Azure SQL Database. After the first run, edited rows are not picked up by later runs. What should you check?
++ Change detection must be enabled for Azure SQL and Cosmos DB sources (for example a high water mark policy); it is automatic only for blobs :: Without it, every run rereads everything or misses changes.
+- The semantic ranker :: It does not affect indexer change detection.
+- The vector profile :: It is unrelated to row changes.
+- The number of replicas :: Replicas affect concurrency.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A RAG index must return the whole parent document when a chunk matches, while search runs over chunks. Which feature supports this pattern?
++ Index projections, which create a secondary index of chunks while the parent index holds the whole document :: Matches in chunks return the parent, which is good for chat and RAG.
+- Knowledge store tables :: They are for analytics outputs.
+- The enrichment cache :: It reuses skill outputs.
+- A synonym map :: It expands search terms.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization
+REF: azure-ai-search-configuration
+
+=== D5 multi
+Q: A security review of Azure AI Search asks which controls you must configure yourself. Which TWO are correct?
++ Prefer Microsoft Entra ID with role-based access control over API keys, and connect indexers to data sources with a managed identity :: Keyless, role-based access is the recommended pattern.
++ Restrict network access with an IP firewall or a private endpoint :: Network access is something you configure.
+- TLS 1.2/1.3 on port 443 and 256-bit AES at rest :: These are built in and need no action.
+- Resource logs record which user ran each query :: Resource logs record operations and query text but not user identity.
+- Search data is used by Microsoft to train models :: Microsoft does not use your data to train models.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-security-built-in
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A team wants agentic retrieval with LLM-based query planning, answer synthesis and non-minimal reasoning effort. The GA REST version `2026-04-01` is used. What should they know?
++ The GA version covers minimal, extractive retrieval; LLM query planning, answer synthesis, non-minimal effort and multi-turn messages come with `2026-08-01-preview` :: Choose the API version that matches the needed features, and remember that preview features can change.
+- GA `2026-04-01` already includes all features :: The preview version adds the advanced ones.
+- Query planning is always skipped :: At `low` or `medium` effort an LLM plans subqueries; `minimal` skips it.
+- Agentic retrieval needs no language model :: Planning and synthesis use an Azure OpenAI model.
+SRC: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A team analyzes only digital (not scanned) PDFs with a Content Understanding document analyzer and wants faster processing. Which configuration change helps?
++ Set `enableOcr` to false, because digital PDFs already contain text :: OCR defaults to true for scans and can be disabled for digital PDFs to go faster.
+- Set `enableLayout` to true :: It is already the default and adds structure, not speed.
+- Set `returnDetails` to true :: It makes the response bigger.
+- Turn on `enableFigureAnalysis` :: It is off by default and adds processing.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference
+REF: content-understanding-and-document-intelligence
+
+=== D5 single
+Q: A company has its own internal claim form that no prebuilt model recognizes, with the same layout every time. They can provide labeled sample forms. Which Document Intelligence option fits?
++ A custom model trained on labeled examples of the form :: Custom models are for your own forms. Prebuilt models cover invoices, receipts and IDs.
+- The prebuilt invoice model :: It is designed for invoices.
+- Read only :: It returns text but not named fields.
+- A video analyzer :: It is for video.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/document/overview
+REF: content-understanding-and-document-intelligence

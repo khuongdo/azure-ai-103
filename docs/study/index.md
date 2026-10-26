@@ -8,7 +8,8 @@ Start with the [syllabus and study plan](course/index.md). The material is organ
 2. **Learn a lesson:** read the deep dive, then take its quiz.
 3. **Apply:** read the case study for the domain, then take its quiz (it ends with design questions).
 4. **Exam technique:** [exam preparation](exam-tips/index.md): how to read questions, traps and patterns, practice test review, mind maps.
-5. **Final week:** [exam summary](overview/summary.md) and the memorize list.
+5. **Practice under exam conditions:** the five [mock exams](practice-tests/index.md) (50 questions, timer, graded at the end, every option explained).
+6. **Final week:** [exam summary](overview/summary.md) and the memorize list.
 
 ## Lessons by domain
 
@@ -74,4 +75,4 @@ Start with the [syllabus and study plan](course/index.md). The material is organ
 | `real-world/` | End-to-end case studies |
 | `quizzes/` | Flashcards and scenario questions (`<topic>-quiz.md`) |
 | `exam-tips/` | Exam technique only |
-| `practice-tests/`, `mind-maps/` | Test reviews and visual memory aids |
+| `practice-tests/`, `mind-maps/` | Interactive mock exams, reviews of third-party tests, and visual memory aids |
