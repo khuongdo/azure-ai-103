@@ -131,6 +131,26 @@ Use tracing to confirm the tool call happened.
 ## 3. Other tools, briefly
 Agents can also use built-in tools (retrieval, code, web) and remote **MCP** servers. For MCP, `allowed_tools` limits which tools are exposed, and `require_approval="always"` requires a person to approve each call. Treat tool descriptions and results from remote servers as untrusted. Details: [Agent safety and identity](agent-safety-and-identity.md).
 
+### Who runs the tool? Server-side versus client-side
+
+| Tool | Who executes it | What your app does |
+|---|---|---|
+| Function tool (your own function) | **Your app** | Run the function, send back `function_call_output` with the same `call_id` (see section 2) |
+| File search, Azure AI Search, code interpreter, Bing grounding, MCP, OpenAPI | **The agent service** | Nothing; results come back inside the run |
+
+A "hosted tool" is run by the service; a "function tool" is only a request that your code must fulfill.
+
+### Agent as a tool (orchestrator and specialists)
+
+In the **connected agent** pattern an orchestrator agent delegates sub-tasks to specialist agents, each registered as a tool of the orchestrator. Steps:
+
+1. *Define specialists* with narrow instructions and their own tools. Example: a "billing" agent with a billing lookup, a "shipping" agent with an order API.
+2. *Register them on the orchestrator* as tools, each with a clear description, because the orchestrator picks a specialist from that description.
+3. *Run the orchestrator.* It decides which specialist to call and merges the answers. The orchestrator keeps control of the conversation; specialists do not talk to the user directly.
+4. *Audit.* Each specialist call is recorded in the run steps, so you can see who was called with what. Wrong: vague descriptions make the orchestrator pick the wrong specialist.
+
+`[NEEDS VERIFICATION]` exact SDK class names and limits (nesting depth, number of connected agents); the Learn how-to page could not be fetched on 2026-10-26.
+
 **Keep the tool set small:** each tool costs tokens, and more overlapping tools means more wrong selections.
 
 ---

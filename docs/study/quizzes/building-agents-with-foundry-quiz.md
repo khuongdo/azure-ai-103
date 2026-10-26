@@ -34,6 +34,12 @@ Based on the [deep dive](../deep-dives/building-agents-with-foundry.md).
 **Q:** Memory limits in preview?
 **A:** 100 scopes per store, 10,000 memories per scope.
 
+**Q:** Who executes a function tool, and who executes file search?
+**A:** Your app runs function tools (return `function_call_output` with the same `call_id`); the agent service runs hosted tools such as file search.
+
+**Q:** What does the orchestrator keep in the agent-as-tool pattern?
+**A:** Control of the conversation; each specialist call is recorded in run steps for audit.
+
 ## Practice questions
 
 ### 1. A long task exceeds the function call window. What should the tool do?
@@ -93,5 +99,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-
 **Correct: B.** Agents are versioned definitions.
 **Incorrect:** the other options do not fit — not versioned.
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-components
+
+</details>
+
+### 5. A model returns a function_call for `get_order`. What must the app do next?
+
+- A. Nothing; the service runs it
+- B. Run the function and send function_call_output with the same call_id and previous_response_id
+- C. Redeploy the agent
+- D. Switch to file search
+
+<details><summary>Answer</summary>
+
+**Correct: B.** The model only requests the call; the app executes it and replies with the matching call_id.
+**Incorrect:** A — only hosted tools run server-side; C, D — unrelated.
+Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
 
 </details>

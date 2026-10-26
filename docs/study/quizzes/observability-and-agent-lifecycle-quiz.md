@@ -61,6 +61,12 @@ Answers and explanations come from the [deep dive](../deep-dives/observability-a
 **Q:** What happens by default when a model monitoring threshold is exceeded?
 **A:** Azure ML sends an alert email to the user who set up the monitor.
 
+**Q:** How long are Azure Monitor platform metrics kept?
+**A:** 93 days. Use a diagnostic setting to Log Analytics or Storage for longer.
+
+**Q:** Which tool shows 429 counts per deployment without writing a query?
+**A:** Azure Monitor metrics explorer on the Azure OpenAI resource, filter by status code, split by ModelDeploymentName.
+
 ## Practice questions
 
 ### 1. Users report that an agent sometimes gives a wrong answer. You need to see, for one failing request, which tools were called, with which arguments, and where the time went. What should you use?
@@ -225,5 +231,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/developm
 **Correct: A.** Data drift compares production data with a baseline and alerts at a threshold.
 **Incorrect:** B, C, D — unrelated to drift detection.
 Source: https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-model-performance
+
+</details>
+
+### 12. A finance team needs quarterly token and 429 reports for Azure OpenAI deployments, kept for a year. What should you do?
+
+- A. Rely on the default metrics retention
+- B. Use metrics explorer and export screenshots
+- C. Create a diagnostic setting that sends metrics to a Log Analytics workspace
+- D. Enable prompt caching
+
+<details><summary>Answer</summary>
+
+**Correct: C.** Platform metrics are kept 93 days; a diagnostic setting stores them longer.
+**Incorrect:** A — too short; B — manual; D — unrelated.
+Source: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-platform-metrics
 
 </details>

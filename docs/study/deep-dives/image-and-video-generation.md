@@ -122,6 +122,17 @@ while status not in ("succeeded", "failed", "cancelled"):
 
 *What can go wrong:* holding a web request open until the video is ready (time-outs); polling in a tight loop (throttling); losing the job ID after a restart (store it); ignoring `failed`. In production use a queue and a worker, and notify the user when done.
 
+### Starting from a reference image (`input_reference`)
+
+Sora 2 can use one image as the visual anchor for the first frame. In the Learn page the parameter is **`input_reference`** (an optional file; JPEG, PNG or WebP). The request is **multipart/form-data**, so the image is a file part, not JSON text. The image size must **match the video `size` exactly**; Learn lists `720x1280` and `1280x720`. Step by step:
+
+1. *Prepare the image* at the target size. Example: a 1280x720 product photo for a 1280x720 video. Wrong: a 1024x1024 image gives a size-mismatch error.
+2. *Send it* as `input_reference` together with `prompt`, `model` and `size`. With the SDK: `client.videos.create(model=..., prompt=..., size="1280x720", input_reference=open("photo.png","rb"))`. With raw REST, drop the `Content-Type: application/json` header and let the HTTP library set the multipart boundary.
+3. *Poll the job* as in the lifecycle above.
+4. *Check*: the first frame should resemble the photo; if not, rewrite the prompt to describe motion relative to the image.
+
+Source: [Sora 2 video generation](https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation) (read 2026-10-26).
+
 `[NEEDS VERIFICATION]` Supported resolutions, maximum duration and exact field names of the request body should be confirmed against the current Sora page before coding.
 
 Azure applies input and output moderation to media generation models, with content filtering and abuse monitoring (see [Responsible AI for multimodal content](responsible-ai-for-multimodal-content.md)).

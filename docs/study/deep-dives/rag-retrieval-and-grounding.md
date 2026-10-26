@@ -144,6 +144,11 @@ A running example used below: a company uploads a 40-page PDF named *Returns Pol
 
 The general-practice parts (token budget, prompt layout, temperature) are standard RAG engineering rather than statements from a single Learn page; test them on your own data.
 
+### Two quick levers: top-k and strictness
+
+- **Specific questions retrieve badly with a very low `top_k`** (for example 3): the right chunk sits at rank 5 and never reaches the prompt. Raise `k` first; if exact product names matter, add keyword matching with hybrid search.
+- **Azure OpenAI On Your Data `strictness`** controls how aggressively retrieved documents are filtered by relevance score. Higher strictness gives higher precision and lower recall: fewer, stronger documents, and the model answers that it cannot determine the answer when evidence is weak. Use it for "only answer when there is a strong match". The 1 to 5 range is from a Q&A forum answer; check the [API reference](https://learn.microsoft.com/azure/ai-services/openai/references/on-your-data) `[NEEDS VERIFICATION]`.
+
 ### Finding which step failed
 
 When a bot gives a wrong answer, find **which step broke**. Each has its own tool and metric:

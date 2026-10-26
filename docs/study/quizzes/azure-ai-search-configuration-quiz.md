@@ -43,6 +43,21 @@ Based on the [deep dive](../deep-dives/azure-ai-search-configuration.md).
 **Q:** Which change detection policy is for databases, not Blob Storage?
 **A:** High water mark.
 
+**Q:** Which skill turns MP3 audio into text inside an indexer?
+**A:** No built-in skill does. Use a custom Web API skill that calls Azure Speech (for example through an Azure Function).
+
+**Q:** In a Web API skill, what do `uri`, `inputs` and `outputs` (with `targetName`) do?
+**A:** `uri` is the HTTPS endpoint; `inputs` are the enrichment-tree values sent; `outputs` are returned values placed in the tree at `targetName`.
+
+**Q:** Web API skill defaults: timeout, max timeout, batchSize?
+**A:** Timeout 30 s (max 230 s); batchSize 1000; degreeOfParallelism 5 (max 10).
+
+**Q:** Which three settings make a vector field complete?
+**A:** `vectorSearch` profile/algorithm in the index, `vectorSearchProfile` on the field, and `dimensions` equal to the model (ada-002 = 1536).
+
+**Q:** Which `imageAction` makes the OCR skill read scanned PDF pages?
+**A:** `generateNormalizedImages`.
+
 ## Practice questions
 
 ### 1. An enrichment pipeline runs but the OCR text never appears in the index. What is missing?
@@ -117,5 +132,50 @@ Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overvie
 **Correct: B.** Indexers do not track deletions; a soft delete policy removes the search document first.
 **Incorrect:** A — a faster schedule still never sees deletions; C — high water mark is for databases; D — caching saves enrichment cost only.
 Source: https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted
+
+</details>
+
+### 6. An index has a `Collection(Edm.Single)` field but vector queries fail. Embeddings come from text-embedding-ada-002. What is most likely missing?
+
+- A. Switch to Edm.Double
+- B. A vectorSearch profile assigned with vectorSearchProfile and dimensions set to 1536
+- C. A scoring profile
+- D. A larger replica count
+
+<details><summary>Answer</summary>
+
+**Correct: B.** A vector field needs a profile (algorithm) and the exact model dimensions; the type alone is not enough.
+**Incorrect:** A — Single is the right type; C and D do not define vectors.
+Source: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index
+
+</details>
+
+### 7. An indexer must process scanned PDFs and MP3 calls entirely inside the pipeline, with no external pre-processing. Which design fits?
+
+- A. OCR skill for PDFs and a Translation skill for MP3
+- B. OCR skill (generateNormalizedImages) for PDFs and a custom Web API skill that calls Azure Speech for MP3
+- C. Transcribe MP3 offline and upload text
+- D. Key phrase skill on the MP3 files
+
+<details><summary>Answer</summary>
+
+**Correct: B.** There is no built-in audio-to-text skill; a Web API skill keeps the work in the indexer.
+**Incorrect:** A — Translation takes text; C — leaves the pipeline; D — Key phrase skill takes text.
+Source: https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api
+
+</details>
+
+### 8. In a Web API skill, which property makes the returned transcript appear in the enrichment tree?
+
+- A. uri
+- B. httpMethod
+- C. outputs with a targetName
+- D. batchSize
+
+<details><summary>Answer</summary>
+
+**Correct: C.** Outputs name the values returned in `data` and place them in the tree; an output field mapping then sends them to the index.
+**Incorrect:** A — endpoint; B — verb; D — batch size.
+Source: https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api
 
 </details>

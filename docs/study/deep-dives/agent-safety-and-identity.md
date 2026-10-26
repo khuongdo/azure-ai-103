@@ -113,6 +113,8 @@ Result for the agent: user input scanned at **Low**; tool calls **not scanned**;
 
 **Standalone API:** Azure AI Content Safety Prompt Shields takes a `userPrompt` and up to five `documents` and returns `attackDetected` for each.
 
+**Injection hidden in an image.** Text inside an image reaches the model through its vision/OCR ability, and a shield that scans text fields may never see it. Do not assume Prompt Shields covered it. Compensating controls: (1) run OCR first and scan the **extracted text** with Prompt Shields, (2) place untrusted content in a clearly separated data section of the prompt, (3) constrain output with a JSON schema, (4) give the model no permission to execute actions from that content. `[NEEDS VERIFICATION]` whether current Foundry guardrails scan image text for a given model; test with a sample image before relying on it.
+
 **Troubleshooting a shield that does not detect:** check the guardrail is assigned, check the intervention point matches where the attack enters (user input vs tool response), and read `detected` vs `filtered`. For false positives, switch to annotate mode and review the subtype.
 
 ---

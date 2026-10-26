@@ -52,6 +52,9 @@ Answers and explanations come from the [deep dive](../deep-dives/platform-networ
 **Q:** Why should projects be created through infrastructure as code in production?
 **A:** Portal-created projects do not inherit network controls, and portal actions can bypass constraints.
 
+**Q:** Private endpoint versus service endpoint?
+**A:** Private endpoint gives a private IP in your VNet and allows disabling public access; service endpoint keeps the public IP and filters by subnet.
+
 ## Practice questions
 
 ### 1. You are designing a new Foundry environment for several teams. Which resource structure should you use?
@@ -200,6 +203,21 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 **Correct: A.** Provisioning and runtime use different identities. The project managed identity is what running agents use to reach Cosmos DB, Search and Storage, and it needs its own data-plane roles.
 **Incorrect:** B — not related; C — that role is for managing accounts, not for agent data access; D — subnet size does not grant data access.
+Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+
+</details>
+
+### 11. An Azure OpenAI resource must not be reachable over the public internet. What do you configure?
+
+- A. Service endpoint on the subnet
+- B. Private endpoint and disable public network access
+- C. Only an NSG rule
+- D. A larger quota
+
+<details><summary>Answer</summary>
+
+**Correct: B.** A private endpoint puts the service on a private IP and public access can then be turned off.
+**Incorrect:** A — public IP remains; C — does not remove the public endpoint; D — unrelated.
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>

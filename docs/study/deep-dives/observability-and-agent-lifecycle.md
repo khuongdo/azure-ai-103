@@ -10,7 +10,8 @@ sources:
   - https://learn.microsoft.com/en-us/azure/foundry/agents/overview
   - https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
   - https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-model-performance
-retrieved: 2026-10-21
+  - https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-platform-metrics
+retrieved: 2026-10-26
 ---
 
 # Deep dive: seeing inside agents and shipping them safely
@@ -136,6 +137,7 @@ This follows the Learn sample. `model_deployment` is the judge model deployment 
 - Set **alerts** when outputs fail quality thresholds or produce harmful content.
 - Watch **HTTP 429 and 503** to detect throttling.
 - Send resource diagnostics to **Log Analytics** for audit with KQL (who called which deployment and when). For Foundry Models the log categories are **RequestResponse** (every inference request and response with status code and latency), **Trace** (detailed debugging of inference calls) and **Audit** (administrative events such as deployments, configuration changes and access control). Metrics are collected automatically; logs must be routed with a **diagnostic setting** (Foundry resource → Monitoring → Diagnostic settings → choose categories and `AllMetrics` → Send to Log Analytics workspace). Roles: **Monitoring Reader** to view metrics, **Monitoring Contributor** to configure diagnostic settings. Allow up to about 15 minutes for data. Collecting logs costs money, so collect only what you need. Useful model metrics include `ModelRequests`, `ModelAvailabilityRate`, `InputTokens`, `OutputTokens`, `TotalTokens`, `TimeToResponse` and, for provisioned deployments, `ProvisionedUtilization` and `TokensCacheMatchRate`. Source: [Monitor model deployments](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/monitor-models).
+- **Azure Monitor Metrics for the Azure OpenAI resource** need no query language. In metrics explorer, chart processed tokens and total calls, filter by status code (for example 429) and **split by `ModelDeploymentName`** to see which deployment is throttled. Platform metrics are stored for **93 days**, and one chart can query at most 30 days at a time. For a quarterly report or longer trends, create a **diagnostic setting** that sends the metrics to a Log Analytics workspace (or Storage). Source: [Azure Monitor metrics](https://learn.microsoft.com/en-us/azure/azure-monitor/metrics/data-platform-metrics).
 - Add **token tracking** in Application Insights and **baseline alerts** in Azure Monitor.
 - Log activity on **jump boxes and build agents**, because they have direct data-plane access.
 - **Classic ML models (Azure Machine Learning).** Production **model monitoring** compares live data with a baseline (training or earlier production data) on a schedule. Built-in signals are **data drift**, **prediction drift** and **data quality**; each has default metrics and thresholds, and by default an **alert email** goes to the person who set up the monitor when a threshold is exceeded. Add feature attribution drift or custom signals when needed. Use this for tabular or other custom models you deploy to Azure ML. For Foundry agents and LLM apps, quality drift is caught with the continuous and scheduled evaluation above.

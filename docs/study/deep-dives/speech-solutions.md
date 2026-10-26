@@ -93,6 +93,8 @@ SSML is XML that controls speech. Typical uses: change **rate, pitch, volume** (
 
 **Voice Live** is a managed WebSocket API for speech-to-speech conversation. It bundles STT, a model, TTS, noise suppression, echo cancellation, and **interruption and end-of-turn detection**. It supports function calling (for example voice RAG), avatars, 140+ STT locales and 600+ voices, with Pro, Standard and Lite tiers. Telephony works through Teams Phone extensibility or Twilio; direct SIP is not offered.
 
+**Voice channel for a bot.** For a Bot Framework bot that must take spoken input with low latency and let the caller interrupt (barge-in), use the **Direct Line Speech** channel linked to an Azure Speech resource: audio streams to Speech over one connection, the bot gets text, and the reply is synthesized back. For phone calls add a telephony bridge such as Azure Communication Services to bring call audio in. `[NEEDS VERIFICATION]` Direct Line Speech details and current status; the Learn page could not be read on 2026-10-26. For new voice agents compare with Voice Live above.
+
 Why use it instead of wiring STT + LLM + TTS yourself: lower latency and fewer moving parts. Why not: less control of each stage.
 
 ---

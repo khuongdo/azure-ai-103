@@ -46,3 +46,14 @@ Patterns seen in [practice test 2](../practice-tests/practice-test-2-review.md).
 6. **Auth questions.** Prefer keyless, identity-based access (`DefaultAzureCredential`, managed identity) when the scenario mentions Entra ID or "no stored credentials".
 7. **Read all four options.** Distractors are often partly correct; choose the one that meets every stated requirement.
 8. **Review mistakes by reason.** After each practice test, record whether a miss was a knowledge gap or a missed constraint.
+
+## Lessons from practice test 4
+
+Patterns from [practice test 4](../practice-tests/practice-test-4-review.md) (22/25).
+
+1. **Constraint words decide.** "Exclusively within the pipeline", "without custom code", "not reachable over the public internet", "only answer on a strong match" and "single low-latency channel" eliminate the convenient option.
+2. **Feature versus job.** Ask "can this service really do that?" Translation skill does not take audio; Key phrase skill takes text only; Prompt Shields may not see text inside an image.
+3. **Network wording.** "Private IP" or "not reachable from the internet" means private endpoint; "restrict to subnet" can be a service endpoint.
+4. **Configuration-error questions.** Look for the missing property (`vectorSearchProfile`, `dimensions`, `input_reference`, `call_id`, `targetName`) before changing service or model.
+5. **Governance questions.** Prefer the answer that keeps every step inside the allowed boundary.
+6. **Numbers worth memorizing.** 93 days (platform metrics), 1536 (ada-002 dimensions), Web API skill timeout 30 s default and 230 s max, batchSize 1000.

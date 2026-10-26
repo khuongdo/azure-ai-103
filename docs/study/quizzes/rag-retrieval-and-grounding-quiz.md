@@ -49,6 +49,12 @@ Answers and explanations come from the [deep dive](../deep-dives/rag-retrieval-a
 **Q:** Must the index and the query use the same embedding model?
 **A:** Yes. Changing the model means re-embedding the content.
 
+**Q:** Search with k=3 misses specific answers. First fix?
+**A:** Raise top-k; add hybrid search if exact names matter.
+
+**Q:** On Your Data: how to answer only when evidence is strong?
+**A:** Raise strictness (higher precision, lower recall).
+
 ## Practice questions
 
 ### 1. A support bot gives confident answers that include facts missing from the retrieved documents. Evaluation shows high Relevance scores. You need to measure how often answers contain unsupported content. Which evaluator should you use?
@@ -198,5 +204,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured
 **Correct: C.** Similarity only makes sense in one embedding space. Re-embed the content with the new model, or keep using the old one for queries.
 **Incorrect:** A — the algorithm choice is unrelated; B — vector fields remain queryable, results are just meaningless; D — nothing disables the semantic ranker.
 Source: deep dive section 2 (vector search rules), based on https://learn.microsoft.com/en-us/azure/search/vector-search-overview
+
+</details>
+
+### 11. A grounded assistant should only answer when a strong match exists. Which setting?
+
+- A. Raise temperature
+- B. Raise strictness
+- C. Lower top-k to 1
+- D. Disable citations
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Higher strictness filters weak documents, so the model says it cannot determine the answer.
+**Incorrect:** A, C, D — do not filter by relevance score. [NEEDS VERIFICATION] exact scale.
+Source: https://learn.microsoft.com/azure/ai-services/openai/references/on-your-data
 
 </details>
