@@ -101,6 +101,8 @@ Custom DNS servers forward these zones to the Azure DNS virtual server `168.63.1
 | Reachable from on-premises | Yes, over VPN or ExpressRoute | No, only from the subnet |
 | Choose when | "Not reachable over the public internet", "private IP", strict isolation | Simple subnet restriction is enough |
 
+Verified on Learn (2026-10-26): a private endpoint is a network interface with a private IP from your VNet and works from peered VNets and from on-premises over VPN or ExpressRoute, but it does not by itself restrict public access, so you also disable public network access. Service endpoints keep DNS resolving to the service's public IP, secure the resource to your subnets, and by default are not reachable from on-premises. Microsoft recommends Private Link and private endpoints. Sources: [private endpoint](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-overview), [service endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview).
+
 Example: a compliance team requires that the Azure OpenAI endpoint cannot be reached from the internet. Only a private endpoint plus disabling public network access meets that.
 
 ### Rules and limits that cause real failures

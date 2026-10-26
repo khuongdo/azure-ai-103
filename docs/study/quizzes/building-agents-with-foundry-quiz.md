@@ -38,7 +38,10 @@ Based on the [deep dive](../deep-dives/building-agents-with-foundry.md).
 **A:** Your app runs function tools (return `function_call_output` with the same `call_id`); the agent service runs hosted tools such as file search.
 
 **Q:** What does the orchestrator keep in the agent-as-tool pattern?
-**A:** Control of the conversation; each specialist call is recorded in run steps for audit.
+**A:** Control of the conversation; the remote or specialist agent returns a response and the orchestrator writes the final answer.
+
+**Q:** Is the Connected Agents tool available in the new Foundry Agent Service?
+**A:** No. Use the A2A tool (`a2a`, GA) or workflows; hosted agents can expose an agent as a function tool.
 
 ## Practice questions
 

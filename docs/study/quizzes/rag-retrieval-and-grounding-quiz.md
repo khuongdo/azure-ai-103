@@ -53,7 +53,7 @@ Answers and explanations come from the [deep dive](../deep-dives/rag-retrieval-a
 **A:** Raise top-k; add hybrid search if exact names matter.
 
 **Q:** On Your Data: how to answer only when evidence is strong?
-**A:** Raise strictness (higher precision, lower recall).
+**A:** Raise strictness (higher precision, lower recall). Note: On Your Data retired Oct 14, 2026; the idea is a relevance-score threshold.
 
 ## Practice questions
 
