@@ -9,6 +9,7 @@ These pages are only about **taking the exam**: how to read a question, which cl
 | [Facts to memorize](../overview/summary.md#memorize-list) | Names, dates, limits and defaults worth remembering (in the summary) |
 | [Practice test review](../practice-tests/practice-test-1-review.md) | Worked review of a full practice test |
 | [Practice test 2 review](../practice-tests/practice-test-2-review.md) | Second practice test, grouped by topic |
+| [Practice test 4 review](../practice-tests/practice-test-4-review.md) | Fourth practice test (22/25), missed questions and topics |
 | [Quizzes](../quizzes/rag-retrieval-and-grounding-quiz.md) | Self-testing questions for each deep dive |
 
 A good routine: learn a topic from its deep dive, read the matching section here the day before a practice test, then take the quiz.

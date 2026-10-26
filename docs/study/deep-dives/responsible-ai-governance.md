@@ -65,7 +65,7 @@ These run in the hosted Foundry Evaluation service, so you do not deploy a judge
 | Evaluator | What it detects |
 |---|---|
 | Hate and unfairness, Sexual, Violence, Self-harm | Harm categories, scored 0 to 7. **Default threshold 3; the case passes if score ≤ threshold** |
-| Protected material | Copyrighted text or code in the output |
+| Protected material | Copyrighted text or code in the output (evaluator name in Foundry: **Protected Materials**; text covers song lyrics, articles, recipes and selected web content) |
 | Code vulnerability | Insecure patterns in generated code |
 | Ungrounded attributes | Inferring protected traits (for example emotional state) not present in the context |
 | Indirect attack (XPIA) | Attempts hidden in content: manipulated content, intrusion, information gathering |

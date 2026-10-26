@@ -8,7 +8,9 @@ sources:
   - https://learn.microsoft.com/en-us/azure/search/search-security-built-in
   - https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview
   - https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted
-retrieved: 2026-10-21
+  - https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api
+  - https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index
+retrieved: 2026-10-26
 ---
 
 # Deep dive: configuring Azure AI Search
@@ -73,6 +75,48 @@ Skills come in two kinds:
 
 *Decision:* built-in skill if one exists; custom skill if you need your own logic; Content Understanding when you need structured fields from complex documents.
 
+### OCR for scanned PDFs and the missing audio skill
+
+A scanned PDF has no text layer, so the **OCR skill** must read it. Set `imageAction` on the indexer to `generateNormalizedImages` so document cracking hands each page image to the OCR skill. There is **no built-in skill that turns audio (MP3) into text**, and the Translation skill takes text, not audio. For audio you call a speech service from a **custom Web API skill**. If the requirement says all processing must stay inside the indexer pipeline, do not transcribe outside and feed text in; wrap the transcription in a skill instead.
+
+### Custom Web API skill, step by step
+
+The skill type is `Microsoft.Skills.Custom.WebApiSkill`. It lets the indexer call your code (for example an Azure Function that starts Azure Speech transcription) once per batch of documents.
+
+| Setting | What it does |
+|---|---|
+| `uri` | The HTTPS endpoint the indexer calls. Only `https` is allowed. A function key can be in `?code=`; the service redacts it when you GET the skillset. |
+| `httpMethod` | `POST` or `PUT`. |
+| `inputs` | Names you choose, each with a `source` path in the enrichment tree (for example `/document/content`). They become the fields of `data` in the request. |
+| `outputs` | Names your endpoint returns in `data`. Each output is written to the enrichment tree under `targetName` (defaults to `name`). |
+| `timeout` | ISO 8601 duration such as `PT60S`. Default 30 seconds, minimum 1 second, **maximum 230 seconds**. |
+| `batchSize` | Records per call. Default **1000**. |
+| `degreeOfParallelism` | Parallel calls. Default 5, range 1 to 10. |
+| `authResourceId` | Optional. App ID URI so the search service's managed identity authenticates to a function protected by Entra ID. |
+
+1. **Indexer builds a batch.** Goal: fewer round trips. Example: with `batchSize` 4, four MP3 documents are grouped. Wrong: a huge batch of long audio exceeds `timeout`.
+2. **Indexer POSTs JSON.** Body is `{"values":[{"recordId":"0","data":{"audioUrl":"..."}}]}`. Each `recordId` must be unique.
+3. **Your code works.** Example: the function sends the audio to Azure Speech batch transcription. Long audio that cannot finish within 230 seconds needs a different design (for example transcribe in advance and have the skill read the result).
+4. **Your code responds.** It must return `application/json` with a `values` array of the **same records**, each with `recordId`, `data`, `errors` and `warnings` (both may be `null`). A record with an unknown or duplicate `recordId` is dropped.
+5. **Indexer merges outputs.** Each `outputs` entry lands in the enrichment tree at its `targetName`. Then an **output field mapping** copies it to an index field. Without the mapping the transcript never reaches the index.
+
+The indexer retries twice on 502, 503 and 429. Treat inputs as untrusted data from documents.
+
+```json
+{
+  "@odata.type": "#Microsoft.Skills.Custom.WebApiSkill",
+  "uri": "https://contoso-func.azurewebsites.net/api/transcribe",
+  "httpMethod": "POST",
+  "timeout": "PT120S",
+  "batchSize": 4,
+  "context": "/document",
+  "inputs":  [ { "name": "audioUrl", "source": "/document/metadata_storage_path" } ],
+  "outputs": [ { "name": "transcript", "targetName": "transcriptText" } ]
+}
+```
+
+Check it works: run the indexer, open the execution history for skill errors, and use a debug session to see `/document/transcriptText` in the enriched tree.
+
 ---
 
 ## 4. Integrated vectorization
@@ -91,6 +135,16 @@ Adds **vector encoding at indexing time and at query time** with no separate pip
 | AML skill (catalog) | Foundry model catalog vectorizer (preview) |
 
 **Index projections** create a secondary index of chunks while the parent index holds the whole document; matches in chunks return the parent. Good for chat/RAG.
+
+### Configuring a vector field completely
+
+A field typed `Collection(Edm.Single)` is not enough. Three pieces must line up:
+
+1. `vectorSearch` section in the index: an `algorithms` entry (`hnsw` or `exhaustiveKnn`, with `metric` such as `cosine`) and a `profiles` entry that names the algorithm.
+2. On the field: `vectorSearchProfile` set to that profile name, and `searchable` true.
+3. On the field: `dimensions` equal to what the embedding model outputs. `text-embedding-ada-002` is fixed at **1536**; `text-embedding-3-small` ranges 1 to 1536; `text-embedding-3-large` ranges 1 to 3072. A mismatch makes the indexer reject documents.
+
+Example symptom: the index is created but queries fail or documents are rejected. Check for a missing `vectorSearchProfile` or wrong `dimensions` first. Index vectors and query vectors must come from the **same embedding model**; integrated vectorization (a vectorizer on the profile) embeds both sides with one configuration. Source: [create a vector index](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index).
 
 **Operational notes:** built-in batching and retry are not configurable; schedule the indexer (for example every 5 minutes) to catch throttled documents. Azure OpenAI token-per-minute limits are per model per subscription, so use separate embedding deployments for indexing and querying. Shared private link works for Azure-to-Azure only (`openai_account` group ID for Azure OpenAI, `sites` for custom skills on App Service/Functions).
 
@@ -131,3 +185,5 @@ Multi-query pipeline for complex questions:
 - [Integrated vectorization](https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization)
 - [Built-in protections](https://learn.microsoft.com/en-us/azure/search/search-security-built-in)
 - [Agentic retrieval](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview)
+- [Custom Web API skill](https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api)
+- [Create a vector index](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index)

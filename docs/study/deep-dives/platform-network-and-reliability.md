@@ -92,6 +92,19 @@ DNS zones to remember:
 
 Custom DNS servers forward these zones to the Azure DNS virtual server `168.63.129.16`.
 
+### Private endpoint versus service endpoint
+
+| | Private endpoint | Service endpoint |
+|---|---|---|
+| What it does | Creates a NIC with a **private IP in your VNet** for the specific resource | Routes subnet traffic to the service over the Azure backbone |
+| Service's public IP | Stays but public access can be **disabled** | Still the **public IP**; you add a firewall rule allowing the subnet |
+| Reachable from on-premises | Yes, over VPN or ExpressRoute | No, only from the subnet |
+| Choose when | "Not reachable over the public internet", "private IP", strict isolation | Simple subnet restriction is enough |
+
+Verified on Learn (2026-10-26): a private endpoint is a network interface with a private IP from your VNet and works from peered VNets and from on-premises over VPN or ExpressRoute, but it does not by itself restrict public access, so you also disable public network access. Service endpoints keep DNS resolving to the service's public IP, secure the resource to your subnets, and by default are not reachable from on-premises. Microsoft recommends Private Link and private endpoints. Sources: [private endpoint](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-overview), [service endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview).
+
+Example: a compliance team requires that the Azure OpenAI endpoint cannot be reached from the internet. Only a private endpoint plus disabling public network access meets that.
+
 ### Rules and limits that cause real failures
 - The **Foundry resource must be in the same region as the VNet**; other resources may be elsewhere (cost implications).
 - Agent subnet: private address space (RFC 1918 or `100.64.0.0/10` with exclusions), **dedicated per Foundry resource** (cannot be shared), size **/24 recommended** (minimum /27 for portal injection), name up to 63 bytes. No overlapping ranges with peered networks.

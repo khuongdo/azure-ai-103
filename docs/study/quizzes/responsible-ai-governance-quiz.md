@@ -34,6 +34,9 @@ Based on the [deep dive](../deep-dives/responsible-ai-governance.md).
 **Q:** Which categories does Content Safety classify?
 **A:** Hate and fairness, sexual, violence, self-harm.
 
+**Q:** Which Foundry evaluator detects copyrighted lyrics, recipes or published text in outputs?
+**A:** Protected Materials.
+
 ## Practice questions
 
 ### 1. You must test for jailbreaks before release. What do you run?
@@ -93,5 +96,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/responsible-use-of-ai-ov
 **Correct: D.** The image model returns the trimmed scale.
 **Incorrect:** the other options do not fit — text; C and D — incorrect.
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories
+
+</details>
+
+### 5. You must check a model's outputs for song lyrics, recipes and published articles. Which evaluator?
+
+- A. Groundedness
+- B. Protected Materials
+- C. Coherence
+- D. Violence
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Protected Materials detects unauthorized use of copyrighted or protected content; its text scope includes lyrics, articles and recipes.
+**Incorrect:** A — checks support in context; C — language quality; D — a harm category.
+Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators
 
 </details>

@@ -34,6 +34,9 @@ Based on the [deep dive](../deep-dives/image-and-video-generation.md).
 **Q:** Provenance signals?
 **A:** C2PA Content Credentials and invisible watermarks.
 
+**Q:** How do you send a reference image to Sora 2?
+**A:** As the `input_reference` file in a multipart/form-data request; its size must match the video size.
+
 ## Practice questions
 
 ### 1. Replace only the background of a photo. What?
@@ -92,6 +95,21 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
 
 **Correct: A.** Terminal states.
 **Incorrect:** the other options do not fit — not statuses.
+Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation
+
+</details>
+
+### 5. A team wants a Sora 2 video that starts from a product photo. How should the photo be sent?
+
+- A. As base64 text inside a JSON `prompt`
+- B. As the `input_reference` file part of a multipart/form-data request, sized to match the video
+- C. As a URL in `n_variants`
+- D. As a mask file
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Learn describes `input_reference` as a single reference image whose size must match the video size.
+**Incorrect:** A, C, D — not the reference-image parameter.
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation
 
 </details>

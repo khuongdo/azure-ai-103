@@ -119,7 +119,8 @@ About **1 frame per second** is sampled and frames are resized to **512×512**; 
 ## 4. Older and related tools
 - **Image Analysis 4.0** (captions, tags, OCR, object detection) retires **September 25, 2028**; plan migration for new work toward models or CU.
 - **Smart crops in Image Analysis 4.0.** To crop a photo around its subject for a target shape (thumbnail, square avatar, banner), request the **`smartCrops`** visual feature. Pass one or more **aspect ratios** (`smartcrops-aspect-ratios` in REST; width divided by height, supported **0.75 to 1.8** inclusive, for example `1.0` for a square). The response gives one **bounding box** per ratio, and you apply the crop in your own code. If you omit ratios, the service returns one suggestion with a ratio between 0.5 and 2.0. `tags`, `objects` and `denseCaptions` describe content but return no crop rectangle for a target ratio.
-- **Azure Video Indexer** remains available for media-library features. `[NEEDS VERIFICATION]` clip API fields.
+- **Azure Video Indexer** remains available for media-library features (transcription, OCR, faces, labels, scenes and shots, keyframes, summarization). Source: [overview](https://learn.microsoft.com/en-us/azure/azure-video-indexer/video-indexer-overview). `[NEEDS VERIFICATION]` clip API fields.
+- **IDs are not portable between services.** A video or asset ID returned by Azure OpenAI (for example a Sora job) means nothing to Video Indexer, because each service creates its own ID. Workflow: download the file, **upload it to Video Indexer**, wait until indexing finishes, then call the edit or insights API with the **Video Indexer video ID**. Calling it earlier or with the foreign ID fails. (From practice test 4; the ID rule is [NEEDS VERIFICATION] on a Learn page.)
 - **Azure Vision multimodal embeddings** (preview skill in Azure AI Search) embed text and images in one vector space for image search.
 
 ## 5. Choosing

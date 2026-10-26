@@ -6,7 +6,8 @@ sources:
   - https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
   - https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/memory-usage
   - https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory
-retrieved: 2026-10-12
+  - https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent
+retrieved: 2026-10-26
 ---
 
 # Deep dive: building agents with Foundry Agent Service
@@ -130,6 +131,32 @@ Use tracing to confirm the tool call happened.
 
 ## 3. Other tools, briefly
 Agents can also use built-in tools (retrieval, code, web) and remote **MCP** servers. For MCP, `allowed_tools` limits which tools are exposed, and `require_approval="always"` requires a person to approve each call. Treat tool descriptions and results from remote servers as untrusted. Details: [Agent safety and identity](agent-safety-and-identity.md).
+
+### Who runs the tool? Server-side versus client-side
+
+| Tool | Who executes it | What your app does |
+|---|---|---|
+| Function tool (your own function) | **Your app** | Run the function, send back `function_call_output` with the same `call_id` (see section 2) |
+| File search, Azure AI Search, code interpreter, Bing grounding, MCP, OpenAPI | **The agent service** | Nothing; results come back inside the run |
+
+A "hosted tool" is run by the service; a "function tool" is only a request that your code must fulfill.
+
+### Agent as a tool (orchestrator and specialists)
+
+The idea: an **orchestrator** agent hands sub-tasks to **specialist** agents and stays in control of the conversation. What Learn says today (page read 2026-10-26, [A2A tool](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent)):
+
+- The **Connected Agents tool from the classic Agents API is not available in the new Foundry Agent Service.** Older exam material and practice tests may still call the pattern "connected agents" or `agent.as_tool`.
+- The replacements are the **A2A tool** (a Foundry agent calls any A2A-compatible endpoint, including another Foundry agent exposed as an A2A endpoint) and **workflows** (declarative orchestration of several agents: sequential, group chat, human-in-the-loop). In **hosted agents** built with the Microsoft Agent Framework you can also expose one agent as a **function tool** of another, in-process.
+- The `a2a` tool type (protocol 1.0) is **GA**; `a2a_preview` (protocol 0.3) stays in preview. Limits: text modality only, no streaming.
+
+A2A call, step by step:
+
+1. *Create a project connection* of category `RemoteA2A` whose target is the remote agent's base URI, with authentication (for a Foundry target: the A2A base path and audience `https://ai.azure.com`).
+2. *Add an `A2ATool`* to the orchestrator agent, pointing to that connection. The orchestrator reads the remote agent card to know what it can do.
+3. *Run the orchestrator.* When the question fits, it calls the remote agent; the remote agent returns a response.
+4. *The orchestrator writes the final answer* and keeps managing the conversation. Check: the tool call appears in the trace/run output. Wrong: a missing connection or auth gives call failures.
+
+How practice questions frame it: "orchestrator keeps control, each specialist call is auditable" points to agent-as-tool (A2A or workflow), not to the specialist talking to the user directly. Pick the option that matches the product the question names.
 
 **Keep the tool set small:** each tool costs tokens, and more overlapping tools means more wrong selections.
 

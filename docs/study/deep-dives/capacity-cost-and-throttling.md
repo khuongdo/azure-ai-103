@@ -207,6 +207,8 @@ Set them explicitly; the library default may not match the service. Guidance: no
 | **Restrict playground use in production** | Prevents unplanned spend | Use pre-production for experiments |
 | **Azure Policy** | Block expensive deployment types | Deny `sku.name` on `Microsoft.CognitiveServices/accounts/deployments` |
 
+**When tokens per minute (TPM) hits the ceiling, shrink the prompt first.** Prompt tokens are usually most of the traffic: a long system prompt, many retrieved chunks and the full chat history are sent on every call. Trim them (shorter system prompt, fewer or smaller chunks, summarize old turns) before asking for more quota or moving to PTU. Check the split with the input and output token metrics.
+
 ### Prompt caching in detail
 
 Prompt caching keeps a temporary cache of processed input tokens, so a request that starts with the same content as an earlier one is cheaper and faster. It changes only latency and cost, never the output.

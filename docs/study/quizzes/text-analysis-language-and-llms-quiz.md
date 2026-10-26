@@ -34,6 +34,9 @@ Based on the [deep dive](../deep-dives/text-analysis-language-and-llms.md).
 **Q:** How do you get parseable JSON from an LLM classifier?
 **A:** Structured Outputs with a schema, low temperature, and an 'unknown' option.
 
+**Q:** PII detection: flag or redact?
+**A:** Use the redacted text (for example `[SSN]`); the entities array alone leaves the original text.
+
 ## Practice questions
 
 ### 1. You need to remove phone numbers and card numbers from call transcripts before sending them to a model. What should you use?
@@ -93,5 +96,20 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/con
 **Correct: B.** CQA supports multi-turn prompts and metadata filtering.
 **Incorrect:** the other options do not fit — do not provide a knowledge base.
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/question-answering/overview
+
+</details>
+
+### 5. Support transcripts must be stored without exposing SSNs. What should you store?
+
+- A. The original text and the entities array
+- B. The redacted text from PII detection
+- C. A hash of the entities only
+- D. The original text in a private blob
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Redaction replaces the value with a label, removing the risk from the stored text.
+**Incorrect:** A and D keep the SSN; C loses the text.
+Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/personally-identifiable-information/overview
 
 </details>

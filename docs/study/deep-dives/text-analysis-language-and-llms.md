@@ -63,6 +63,7 @@ All Language features follow the same four steps (from the key phrase overview):
 ### 3.3 PII detection and redaction
 - Detects personal data (names, phone numbers, card numbers) in **text**, **conversations** (asynchronous) and **documents** (asynchronous; PDF, DOCX, TXT).
 - Returns redacted text and the entity list; you choose redaction policies and categories.
+- **To reduce PII risk, use the redaction output**, not just the entity list. Flagging or storing the `entities` array still leaves the original text with the SSN in it. The redacted text replaces each entity with a mask or the category label (for example `[SSN]`), and that text is what you log, index or send to a model.
 - **Why it matters:** run it *before* data goes to a model, a log or a search index.
 
 ### 3.4 Sentiment analysis and opinion mining

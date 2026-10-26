@@ -52,6 +52,9 @@ Answers and explanations come from the [deep dive](../deep-dives/agent-safety-an
 **Q:** What does "audience" mean in agent token exchange?
 **A:** The resource identifier of the downstream service the token is for (for example `https://storage.azure.com`).
 
+**Q:** Can Prompt Shields miss injection text inside an image?
+**A:** Yes, it may. OCR first, scan the extracted text, separate untrusted data, constrain output, grant no execution rights.
+
 ## Practice questions
 
 ### 1. A model deployment has a guardrail with Violence set to High on user input and output. An agent using that model has its own guardrail with Violence set to Low on user input and output, and no Violence control on tool calls or tool responses. How is Violence handled for the agent?
@@ -201,5 +204,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/rbac-foundry
 **Correct: D.** A federated credential establishes trust with the project's managed identity, and Azure rotates credentials automatically.
 **Incorrect:** A — needs manual rotation and secure storage; B — stronger than a secret but needs lifecycle management; C — API keys are not a blueprint credential type here.
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-identity
+
+</details>
+
+### 11. A vision app reads user-uploaded images that may hide instructions. Which mitigation helps most?
+
+- A. Raise temperature
+- B. OCR the image and scan the extracted text, keep it as untrusted data, and give the model no action permissions
+- C. Use a longer system prompt only
+- D. Disable logging
+
+<details><summary>Answer</summary>
+
+**Correct: B.** Image text may bypass text shields, so extract and check it and limit what the model can do.
+**Incorrect:** A, C, D — do not control the attack path.
+Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/content-filter-prompt-shields
 
 </details>
