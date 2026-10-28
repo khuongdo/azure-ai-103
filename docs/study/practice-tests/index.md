@@ -45,7 +45,7 @@ No question text is repeated across the five tests (the build script checks this
    Each share is inside the official range. The official exam length in this repo's [summary](../overview/summary.md) is 120 minutes, which is the default timer. The exact number of questions on the real exam is not published on the pages used here, so 50 is a working choice, not a claim about the real test.
 2. **Question style.** Each question is a short real-world situation with constraints ("You need to ... Which ... should you use?"), the style described in [Reading exam questions](../exam-tips/reading-exam-questions.md) and seen in the three reviewed practice tests. Wrong options are real services or settings that do not fit, not absurd choices. Between 3 and 6 questions per test ask you to select two answers.
 3. **Facts.** Every answer comes from a lesson in [deep-dives](../deep-dives/best-practices-and-real-world-scenarios.md) and links to the Microsoft Learn page behind it. A build check refuses any source link that is not already cited in the study notes, so links are not invented.
-4. **Explanations.** Every option, right or wrong, has its own explanation of why it is correct or incorrect.
+4. **Explanations.** Every option, right or wrong, has its own explanation of why it is correct or incorrect. Every question also has a **Concept behind this question** block: a plain-language lesson on the ideas the question tests (what each term means, how the mechanism works, how the ideas relate, and a memory aid), so you can learn the topic and not only the answer.
 
 ## How a test works
 
@@ -54,7 +54,7 @@ No question text is repeated across the five tests (the build script checks this
    - **Practice mode**: after you answer a question, **Check answer** shows the explanations immediately. Use it for learning, not for measuring.
 2. **During the test.** The question map on the side shows answered (blue) and flagged (dot) questions. A summary dialog before grading lists unanswered and flagged questions so you can jump back to them. The timer turns amber at 10 minutes and red at 5 minutes. When it reaches zero, the test is graded automatically with the answers you have given.
 3. **Grading.** A single-answer question is correct when you pick the right option. A "select N" question is correct only when you select exactly the right set (no partial credit). The result shows your score, your score by domain, and a map of right, wrong and unanswered questions.
-4. **Review.** Every question is listed with all options. For each option you see whether it is correct, whether you picked it, and **why**. Wrong and unanswered questions open automatically. Filter by wrong, unanswered or flagged, and follow the links to the matching lesson and Microsoft Learn page.
+4. **Review.** Every question is listed with all options. For each option you see whether it is correct, whether you picked it, and **why**, followed by the concept explanation for the question. Wrong and unanswered questions open automatically. Filter by wrong, unanswered or flagged, and follow the links to the matching lesson and Microsoft Learn page.
 5. **Saved state.** Your answers, flags and timer are saved in this browser (local storage), so a refresh or a closed tab does not lose the attempt. Use **Resume saved attempt** on the start screen. If browser storage is blocked, the test still works but cannot resume.
 
 ### What can go wrong

@@ -149,3 +149,7 @@ details.rq .rbody { padding: 0 14px 14px; }
 .filters button.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .srcs { margin-top: 10px; font-size: 0.88rem; }
 .srcs a { word-break: break-all; }
+
+.concept { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--accent, #0b6bcb); background: rgba(11, 107, 203, 0.07); border-radius: 4px; font-size: 0.93rem; }
+.concept .concept-title { font-weight: 700; margin-bottom: 6px; }
+.concept p { margin: 6px 0; }

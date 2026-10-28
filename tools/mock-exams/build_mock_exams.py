@@ -16,6 +16,7 @@ Authoring format (see .claude/skills/ai103-mock-exam/SKILL.md):
     Q: Scenario text. May span several lines and contain ``` code blocks.
     + Correct option :: why it is correct
     - Wrong option :: why it is wrong
+    CONCEPT: Question-level explanation: the concepts behind the question, in plain words (several paragraphs).
     SRC: https://learn.microsoft.com/en-us/azure/...   (comma separated)
     REF: capacity-cost-and-throttling                   (deep-dive file names, comma separated)
 
@@ -29,6 +30,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+MIN_CONCEPT_WORDS = 90
 SRC_DIR = ROOT / "tools" / "mock-exams"
 OUT_DIR = ROOT / "docs" / "study" / "practice-tests"
 DEEP_DIVES = ROOT / "docs" / "study" / "deep-dives"
@@ -64,6 +66,7 @@ def parse(path: Path) -> dict:
     meta, questions = {}, []
     current = None
     in_code = False
+    in_concept = False
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.rstrip()
         if current is None and line.startswith("@"):
@@ -76,11 +79,20 @@ def parse(path: Path) -> dict:
             m = re.match(r"=== D([1-5]) (single|multi)$", line)
             if not m:
                 raise BuildError(f"{path.name}: bad header: {line}")
-            current = {"d": int(m.group(1)), "kind": m.group(2), "q": [], "o": [], "src": [], "ref": [],
+            current = {"d": int(m.group(1)), "kind": m.group(2), "q": [], "o": [], "src": [], "ref": [], "concept": [],
                        "line": len(questions) + 1}
             questions.append(current)
             continue
         if current is None:
+            continue
+        if in_concept and not in_code and (line.startswith("SRC:") or line.startswith("REF:")):
+            in_concept = False
+        if in_concept:
+            current["concept"].append(line)
+            continue
+        if not in_code and line.startswith("CONCEPT:"):
+            in_concept = True
+            current["concept"] = [line[8:].strip()]
             continue
         if not in_code and line.startswith("Q:"):
             current["q"].append(line[2:].strip())
@@ -132,6 +144,12 @@ def validate(name: str, data: dict) -> list:
                 problems.append(f"{tag}: REF '{slug}' is not a file in docs/study/deep-dives")
         if not q["ref"]:
             problems.append(f"{tag}: missing REF")
+        q["concept_text"] = "\n".join(q["concept"]).strip()
+        words = len(q["concept_text"].split())
+        if words < MIN_CONCEPT_WORDS:
+            problems.append(f"{tag}: CONCEPT needs at least {MIN_CONCEPT_WORDS} words (has {words})")
+        if "[NEEDS VERIFICATION]" in q["concept_text"]:
+            problems.append(f"{tag}: CONCEPT contains [NEEDS VERIFICATION]; verify or drop the question")
         for o in q["o"]:
             if LETTER_REF.search(o["e"]) or LETTER_REF.search(o["t"]):
                 problems.append(f"{tag}: explanation refers to an option letter (options are shuffled)")
@@ -162,7 +180,7 @@ def build_json(data: dict, test_id: str) -> dict:
             want = next(slots)
             at = next(i for i, o in enumerate(options) if o["c"])
             options[at], options[want] = options[want], options[at]
-        questions.append({"d": q["d"], "q": q["text"], "o": options, "src": q["src"], "ref": q["ref"]})
+        questions.append({"d": q["d"], "q": q["text"], "o": options, "concept": q["concept_text"], "src": q["src"], "ref": q["ref"]})
     meta = data["meta"]
     return {
         "id": test_id,
