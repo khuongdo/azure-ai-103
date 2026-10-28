@@ -45,8 +45,16 @@ Based on the [deep dive](../deep-dives/translation.md).
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Adaptive custom translation builds an index from 5 to 10,000 pairs.
-**Incorrect:** the other options do not fit — unrelated.
+**Correct: C.** Adaptive custom translation takes a small set of aligned bilingual pairs (5 to 10,000, each up to 500 characters) and builds an index that steers an LLM translation toward your terminology and style. 3,000 pairs sits inside that range, and the result is ready in minutes because nothing is trained. At request time you pass the adaptive dataset index ID, or up to five reference translations, together with the LLM model choice. (Exact request field names are not shown here; check the API reference `[NEEDS VERIFICATION]`.)
+
+
+**Why the others are wrong:**
+- **A. Language detection** only identifies the source language of a text. It does not change how text is translated.
+- **B. Transliterate** converts a script (for example Cyrillic to Latin) without translating meaning.
+- **D. Voice Live** is a real-time speech interaction feature, not a text translation customization.
+
+**Exam clue:** "small dataset" + "quick" + "LLM" points to adaptive custom translation; "large parallel corpus" + "BLEU" points to Custom Translator (question 2).
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/overview
 
 </details>
@@ -60,8 +68,15 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-tran
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Custom Translator trains custom NMT systems and reports BLEU.
-**Incorrect:** the other options do not fit — no training; C and D — unrelated.
+**Correct: A.** Custom Translator is the only option that trains a custom NMT system. The workflow is: create a workspace and project, upload parallel documents (and optional dictionaries), train, review the **BLEU** score on the test set, publish, then call text translation with the published custom model identifier. BLEU compares machine output with a human reference; higher is better, but only compare scores measured on the same test set.
+
+**Why the others are wrong:**
+- **B. Speech translation** translates live audio. It is not a text-model training tool.
+- **C. Content Safety** detects harmful content; it has nothing to do with translation quality.
+- **D. Glossary only** forces fixed term mappings in a document translation job (CSV, XLIFF or TSV). It trains nothing and produces no BLEU score.
+
+**Exam clue:** the words "trained" and "BLEU" together mean Custom Translator.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/custom-translator/overview
 
 </details>
@@ -75,8 +90,21 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/custom-tr
 
 <details><summary>Answer</summary>
 
-**Correct: B.** 403 means valid credentials but unsupported operation or configuration.
-**Incorrect:** the other options do not fit — 429; C and D — 400.
+**Correct: B.** A 403 means the service accepted your credentials but refuses the operation. Typical cases: you asked for an LLM translation on a resource that is not a Foundry resource, or the feature is not available in that region. Fix it by checking the resource type, region and the model/operation you call, not the key.
+
+| Status | Meaning |
+|---|---|
+| 400 | Invalid payload or unsupported language |
+| 401 | Missing or bad key |
+| 403 | Valid credentials, unsupported operation or configuration |
+| 429 | Rate limit |
+
+**Why the others are wrong:**
+- **A. Missing language** and **C. Invalid JSON** are payload problems, so they return **400**.
+- **D. Rate limit** returns **429**; retry with backoff.
+
+**Exam clue:** "valid key" removes 401; "403" removes 400 and 429.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/overview
 
 </details>
@@ -90,8 +118,14 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-tran
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Tone and gender controls apply to LLM translation.
-**Incorrect:** the other options do not fit — not supported there.
+**Correct: C.** Tone (formal, informal, neutral) and gender controls are supported only on the LLM translation path, which needs a Foundry resource. NMT is a fixed neural model with no such parameters, so keep NMT for high-volume baseline traffic and send only text where tone or context matters to an LLM. Remember the lower limits on the LLM path: 50 array elements and 5,000 characters per element (NMT: 1,000 and 50,000), and billing per token instead of per source character.
+
+**Why the others are wrong:**
+- **A. Language detection** and **B. Transliterate** are separate operations; neither controls how a sentence is translated.
+- **D. NMT** translates quickly and cheaply but has no tone or gender controls.
+
+**Exam clue:** "formal/informal" or "gender" means LLM translation.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/overview
 
 </details>

@@ -54,8 +54,22 @@ Based on the [case study](../real-world/shipping-ai-apps-to-production.md). The 
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The runner needs network reachability to the private endpoints.
-**Incorrect:** A — undermines isolation; C — unrelated; D — keys are discouraged and do not fix networking.
+**Correct: B.** Control-plane calls (ARM) work from anywhere, but data-plane calls (agents, files, project endpoint) go to **private endpoints** that only resolve and route inside your network. A Microsoft-hosted runner is on the public internet, so the call fails with 403 or a connection error. Run the job on a **self-hosted runner** (VM, container or scale set) **in or peered to the VNet**, with private DNS resolving the private endpoints.
+
+```yaml
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, vnet]       # label of a runner inside the VNet
+    steps:
+      - uses: actions/checkout@v4
+      - run: azd deploy --no-prompt
+```
+
+**Why the others are wrong:**
+- **A. Re-enable public access:** undermines the isolation requirement.
+- **C. Larger agent subnet:** affects the agent runtime, not the pipeline's reachability.
+- **D. API keys:** discouraged, and keys do not fix networking.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>
@@ -69,8 +83,19 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-ne
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Gate on no regression of critical metrics.
-**Incorrect:** A — averages can hide regressions; C and D — safety must be gated.
+**Correct: B.** An average can hide a critical regression: a big gain in helpfulness can offset a small loss in task adherence, yet adherence (following rules and policy) may be the dimension that matters most. Design the gate with two rule types: **absolute floors** for critical metrics (and safety evaluators) and a **no-regression rule versus the current production version** on the same dataset. Safety metrics and red teaming are never skipped.
+
+```python
+CRITICAL = ["task_adherence", "groundedness", "violence_defect_rate"]
+
+def gate(new: dict, prod: dict, tolerance: float = 0.0) -> bool:
+    return all(new[m] >= prod[m] - tolerance for m in CRITICAL)   # fail on any regression
+```
+
+**Why the others are wrong:**
+- **A. Pass when the average improves:** averages hide regressions.
+- **C. Ignore safety / D. Skip red teaming:** safety must be gated.
+
 Source: case study sections 4 and 5
 
 </details>
@@ -84,8 +109,21 @@ Source: case study sections 4 and 5
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Versions are immutable and Foundry has no native canary routing, so you add one.
-**Incorrect:** A — not editable; C — removes rollback; D — not production traffic.
+**Correct: B.** Agent versions are **immutable** (`name:version`), so a new version can sit beside the old one. Foundry has **no native canary routing**, so add a routing layer (API Management, an app gateway, or your own code) that sends 5% of requests to `support:4` and 95% to `support:3`. Rollback is changing the weight back to 0%: instant, since `support:3` was never removed. Compare metrics (quality scores, errors, latency, cost, human-change rate) during the canary before raising the percentage.
+
+```python
+import random
+
+def pick_version(user_id: str) -> str:
+    bucket = hash(user_id) % 100              # sticky per user, so a conversation stays on one version
+    return "support:4" if bucket < CANARY_PERCENT else "support:3"
+```
+
+**Why the others are wrong:**
+- **A. Edit in place:** saved versions cannot be edited.
+- **C. Delete the old version first:** removes your rollback.
+- **D. Playground:** not production traffic.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -99,8 +137,16 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: A.**
-**Incorrect:** B, C, D — do not control model versions.
+**Correct: A.** A new **model version** can change tone, tool use and formatting. If the deployment is set to **auto-upgrade**, the platform can move to a newer version without any change in your repo. Set the deployment's version upgrade option to **no auto-upgrade** (pin it), run your **evaluation suite on the new version** in a separate deployment, then promote it through the normal release process.
+
+```json
+"properties": { "model": { "name": "gpt-4.1", "version": "2025-04-14" }, "versionUpgradeOption": "NoAutoUpgrade" }
+```
+
+**Why the others are wrong:**
+- **B. More tools / C. Higher temperature:** do not control model versions (temperature adds randomness).
+- **D. Disable tracing:** hides the change.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -114,8 +160,20 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Configure recovery before incidents; continuous backup must be enabled in advance.
-**Incorrect:** A, C, D — not recovery mechanisms.
+**Correct: B.** There is no built-in backup/DR for Agent Service data, so you prepare it before an incident:
+1. **Agents as code** (definitions, prompts, tools in Git) → redeploy in minutes.
+2. **Cosmos DB continuous backup** (point-in-time restore) for conversations and state. It **must be enabled in advance**; you cannot restore from a backup that was never turned on.
+3. **Delete locks** and restricted roles to prevent the accident.
+4. Optionally a secondary region and tested runbooks (high availability and resiliency guidance).
+
+```bash
+az lock create --name protect-foundry --lock-type CanNotDelete --resource-group rg-foundry
+```
+
+**Why the others are wrong:**
+- **A. Support ticket only:** not a documented recovery path.
+- **C. Bigger quota / D. Second playground:** unrelated to data recovery.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/how-to/high-availability-resiliency
 
 </details>
@@ -129,8 +187,26 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/how-to/high-availability
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Resource logs routed with a diagnostic setting can be queried with KQL.
-**Incorrect:** A — telemetry for traces, not resource audit; C and D — unrelated.
+**Correct: B.** Foundry Models write **resource logs** in three categories: **RequestResponse**, **Trace** and **Audit**. A **diagnostic setting** routes them to a Log Analytics workspace (or Storage / Event Hubs) with **no application code change**, then you query with KQL: who (caller identity / IP), which deployment, when, status code.
+
+```bash
+az monitor diagnostic-settings create --name audit-to-law \
+  --resource <foundry-resource-id> --workspace <law-id> \
+  --logs '[{"category":"RequestResponse","enabled":true},{"category":"Audit","enabled":true}]'
+```
+
+```kusto
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| summarize requests = count() by CallerIPAddress, bin(TimeGenerated, 1h)
+```
+
+(Table and column names depend on the destination mode `[NEEDS VERIFICATION]`.)
+
+**Why the others are wrong:**
+- **A. Application Insights sampling:** collects app telemetry and traces, not resource audit logs.
+- **C. Second agent / D. Spillover:** unrelated.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/monitor-models
 
 </details>

@@ -69,8 +69,20 @@ Based on the [deep dive](../deep-dives/azure-ai-search-configuration.md).
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Enriched content needs output field mappings to reach index fields.
-**Incorrect:** the other options do not fit — unrelated.
+**Correct: D.** A skillset writes its results into an in-memory **enrichment tree** (for example `/document/normalized_images/*/text`). Nothing from that tree reaches the index unless an **output field mapping** in the indexer copies a tree node to an index field. The skill runs fine, which is why the pipeline "works" but the field stays empty.
+
+```json
+"outputFieldMappings": [
+  { "sourceFieldName": "/document/normalized_images/*/text", "targetFieldName": "ocr_text" }
+]
+```
+
+Debug order: run the indexer, open the **debug session** or check the execution status for skill warnings, confirm the node path exists, then confirm the target field exists in the index and is `searchable`.
+
+**Why the others are wrong:**
+- **A. Suggester:** powers autocomplete, not data flow.
+- **B. Larger tier / C. Replica:** capacity settings, unrelated to a missing mapping.
+
 Source: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
 
 </details>
@@ -84,8 +96,19 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Vectorizer and skill must use the same model.
-**Incorrect:** the other options do not fit — not the cause.
+**Correct: B.** Vectors are only comparable if the **query** and the **documents** were embedded by the **same model** (and same dimensions). If you changed the model in the indexing skill but the vectorizer (used at query time) still points to the old one, the query vector lives in a different space than the stored vectors, so similarity scores are meaningless and results look random. Fix: use the same deployment in the skill and the vectorizer, then **re-index** all documents.
+
+```json
+"vectorizers": [{ "name": "my-vectorizer", "kind": "azureOpenAI",
+  "azureOpenAIParameters": { "resourceUri": "https://<aoai>.openai.azure.com",
+    "deploymentId": "text-embedding-3-large", "modelName": "text-embedding-3-large" } }]
+```
+
+**Why the others are wrong:**
+- **A. TLS version:** would break the connection, not the quality.
+- **C. Semantic ranker off:** affects re-ranking, but would not make vector matches wrong.
+- **D. Small index:** size does not corrupt similarity.
+
 Source: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization
 
 </details>
@@ -99,8 +122,20 @@ Source: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Indexers have a 5 minute minimum; push is faster.
-**Incorrect:** the other options do not fit — slower or unrelated.
+**Correct: A.** An indexer is a **pull** mechanism with a minimum schedule interval of **5 minutes**, so it can never give "within seconds". **Pushing** documents through the API (REST or SDK) writes straight into the index, and they are searchable almost immediately.
+
+```python
+from azure.search.documents import SearchClient
+
+client = SearchClient(endpoint, index_name, credential)
+client.upload_documents(documents=[{"id": "42", "title": "New price list"}])  # or merge_or_upload_documents
+```
+
+**Why the others are wrong:**
+- **B. Indexer every 5 minutes:** that is the fastest schedule, still minutes.
+- **C. Reset indexer daily:** reprocesses everything, much slower.
+- **D. Semantic ranker:** improves ranking, has no effect on freshness.
+
 Source: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
 
 </details>
@@ -114,8 +149,15 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
 
 <details><summary>Answer</summary>
 
-**Correct: D.** It decomposes the query using chat history and runs subqueries in parallel.
-**Incorrect:** the other options do not fit — do not plan subqueries.
+**Correct: D.** **Agentic retrieval** uses an LLM to plan the query: it reads the chat history, resolves references ("it", "that plan"), splits a multi-part question into focused **subqueries**, runs them **in parallel**, merges and semantically ranks the results, and returns grounding data plus a response with citations. A classic single query cannot do this because it sees only the last message.
+
+Example: chat so far is about "Plan A". User asks "Compare it with Plan B and tell me the cancellation fee." The planner produces subqueries such as "Plan A features", "Plan B features", "Plan B cancellation fee" and runs them together.
+
+**Why the others are wrong:**
+- **A. Synonym maps:** expand terms ("car" = "auto") but do not use history.
+- **B. Scoring profile:** boosts fields or freshness; it does not plan subqueries.
+- **C. Lower temperature:** a model parameter; nothing to do with query decomposition.
+
 Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview
 
 </details>
@@ -129,8 +171,21 @@ Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overvie
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Indexers do not track deletions; a soft delete policy removes the search document first.
-**Incorrect:** A — a faster schedule still never sees deletions; C — high water mark is for databases; D — caching saves enrichment cost only.
+**Correct: B.** Indexers detect new and changed documents but **do not detect deletions** by default. A deleted blob simply stops appearing, and its search document stays. For blobs, configure a **soft delete** detection policy: add a metadata property such as `IsDeleted`, set it to `true` on the blob **first**, let the indexer run (it removes the search document), and only then delete the blob.
+
+```json
+"dataDeletionDetectionPolicy": {
+  "@odata.type": "#Microsoft.Azure.Search.SoftDeleteColumnDeletionDetectionPolicy",
+  "softDeleteColumnName": "IsDeleted",
+  "softDeleteMarkerValue": "true"
+}
+```
+
+**Why the others are wrong:**
+- **A. Faster schedule:** the indexer still never sees a missing blob.
+- **C. High water mark:** a *change* detection policy for databases (for example a rowversion column), not deletions.
+- **D. Enrichment caching:** saves skill cost on re-runs, nothing more.
+
 Source: https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted
 
 </details>
@@ -144,8 +199,18 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure
 
 <details><summary>Answer</summary>
 
-**Correct: B.** A vector field needs a profile (algorithm) and the exact model dimensions; the type alone is not enough.
-**Incorrect:** A — Single is the right type; C and D do not define vectors.
+**Correct: B.** A vector field needs more than its type. You must set `dimensions` to the **exact output size of the embedding model** (text-embedding-ada-002 produces **1536**), and assign a `vectorSearchProfile`, which points to an **algorithm** (HNSW or exhaustive KNN) and optionally a vectorizer. With a wrong dimension count, indexing or querying fails.
+
+```json
+{ "name": "contentVector", "type": "Collection(Edm.Single)",
+  "searchable": true, "dimensions": 1536, "vectorSearchProfile": "my-profile" }
+```
+
+**Why the others are wrong:**
+- **A. Edm.Double:** `Collection(Edm.Single)` is the correct type for vectors.
+- **C. Scoring profile:** tunes keyword relevance, not vectors.
+- **D. More replicas:** add query capacity, they do not define a vector field.
+
 Source: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index
 
 </details>
@@ -159,8 +224,13 @@ Source: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-crea
 
 <details><summary>Answer</summary>
 
-**Correct: B.** There is no built-in audio-to-text skill; a Web API skill keeps the work in the indexer.
-**Incorrect:** A — Translation takes text; C — leaves the pipeline; D — Key phrase skill takes text.
+**Correct: B.** For scanned PDFs, the built-in **OCR** skill works on images; set `imageAction: generateNormalizedImages` in the indexer configuration so page images exist in the tree. There is **no built-in audio-to-text skill**, so use a **custom Web API skill** that calls Azure Speech (for example a function that submits the audio and returns the transcript). Both stay inside the indexer, so reruns and incremental updates keep working.
+
+**Why the others are wrong:**
+- **A. Translation for MP3:** the Translation skill takes text, not audio.
+- **C. Offline transcription:** leaves the pipeline, which the requirement forbids.
+- **D. Key phrase skill on MP3:** it also takes text input.
+
 Source: https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api
 
 </details>
@@ -174,8 +244,25 @@ Source: https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-s
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Outputs name the values returned in `data` and place them in the tree; an output field mapping then sends them to the index.
-**Incorrect:** A — endpoint; B — verb; D — batch size.
+**Correct: C.** In a Web API skill, `inputs` define what is sent to your endpoint and **`outputs`** define the values you return in the `data` object. Each output has a `name` (the key in your response) and a `targetName` (the node created in the enrichment tree). An output field mapping then copies that node to an index field.
+
+```json
+{
+  "@odata.type": "#Microsoft.Skills.Custom.WebApiSkill",
+  "uri": "https://<func>.azurewebsites.net/api/transcribe",
+  "httpMethod": "POST",
+  "batchSize": 1,
+  "context": "/document",
+  "inputs":  [{ "name": "audioUrl", "source": "/document/metadata_storage_path" }],
+  "outputs": [{ "name": "transcript", "targetName": "transcript" }]
+}
+```
+
+**Why the others are wrong:**
+- **A. uri:** the endpoint to call.
+- **B. httpMethod:** the verb (POST).
+- **D. batchSize:** how many records go in one request.
+
 Source: https://learn.microsoft.com/en-us/azure/search/cognitive-search-custom-skill-web-api
 
 </details>

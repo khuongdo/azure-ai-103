@@ -54,8 +54,21 @@ Based on the [case study](../real-world/customer-support-agent.md). The last two
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Prompts guide; code and permissions enforce.
-**Incorrect:** A — can be bypassed; C and D — do not enforce authorization.
+**Correct: B.** This is the classic "broken object-level authorization" risk. The model decides *which* tool to call and with *what* arguments, and a customer can talk it into asking for any order number. So authorization cannot live in the model. Your app knows who is signed in; it injects the authenticated `customer_id` into the tool call (the model never supplies it), and the tool checks ownership before returning anything.
+
+```python
+def get_order_status(order_id: str, *, customer_id: str) -> dict:
+    # customer_id comes from the signed-in session, not from model arguments
+    order = db.get_order(order_id)
+    if order is None or order.customer_id != customer_id:
+        return {"error": "Order not found"}          # same answer for missing and foreign orders
+    return {"order_id": order_id, "status": order.status}
+```
+
+**Why the others are wrong:**
+- **A. System prompt rule:** prompt injection or persistence can bypass it.
+- **C. Lower temperature / D. Bigger model:** neither enforces authorization.
+
 Source: case study section 4
 
 </details>
@@ -69,8 +82,25 @@ Source: case study section 4
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The response carries an approval request item; your app shows it to a person and sends back an approval response. Also enforce the limit in the tool.
-**Incorrect:** A — it restricts which tools, not approval; C — unrelated; D — removes the capability.
+**Correct: B.** For an MCP tool, `require_approval="always"` makes the service stop before it calls the server and return an **`mcp_approval_request`** item. Your app shows the tool name and arguments to a person (the approver), then sends back an **`mcp_approval_response`** with `approve: true/false`. Enforce the $200 limit in the refund tool as well, so a bug in the approval flow cannot refund more.
+
+```python
+tool = MCPTool(server_label="refunds", server_url=MCP_URL, require_approval="always")
+# ... after responses.create(...):
+approvals = []
+for item in response.output:
+    if item.type == "mcp_approval_request":
+        ok = ask_human(item.name, item.arguments)       # your UI
+        approvals.append({"type": "mcp_approval_response",
+                          "approval_request_id": item.id, "approve": ok})
+final = openai.responses.create(input=approvals, previous_response_id=response.id, extra_body=ref)
+```
+
+**Why the others are wrong:**
+- **A. `allowed_tools` only:** restricts *which* tools the agent may use; it does not ask anyone.
+- **C. Higher token limit:** unrelated.
+- **D. Remove the tool:** removes the capability instead of controlling it.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/model-context-protocol
 
 </details>
@@ -84,8 +114,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/mode
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Tool descriptions drive selection; fewer, clearer tools improve it.
-**Incorrect:** A — worsens selection; C — hides evidence; D — adds randomness.
+**Correct: B.** The model chooses tools by reading their **names and descriptions**. If `track_shipment` and `create_return_request` both say "handles order issues", the model cannot tell them apart. First fix the cheap thing: write descriptions that say *when to use* and *when not to use* each tool, merge or remove overlapping tools, and then measure with the **Tool Selection** evaluator on a test set that includes shipping questions.
+
+```python
+FunctionTool(name="track_shipment",
+             description="Get carrier status and delivery date for an order. Use for 'where is my order' questions.", ...)
+FunctionTool(name="create_return_request",
+             description="Start a return for a delivered order. Use ONLY when the customer asks to return or refund. Not for shipping status.", ...)
+```
+
+**Why the others are wrong:**
+- **A. Add more tools:** more choices mean more wrong picks and more prompt tokens.
+- **C. Disable tracing:** removes the evidence you need to diagnose.
+- **D. Raise temperature:** adds randomness to tool choice.
+
 Source: case study sections 3 and 7
 
 </details>
@@ -99,8 +141,13 @@ Source: case study sections 3 and 7
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Roles granted to the shared project identity do not transfer.
-**Incorrect:** A, C and D — would not produce an authorization error on tool calls specifically.
+**Correct: B.** In the playground the agent runs with the shared project identity (or your own), which already has access. **Publishing creates a distinct agent identity**, and roles from the shared project identity **do not transfer**, so the order system (or its connection) now rejects the calls. Grant the needed role to the new agent identity on the downstream resource, then retest in the published endpoint.
+
+Why the symptom matters: an *authorization* error on tool calls only points to identity. A changed model would change answer quality, a strict guardrail would block with a content-filter message, and exhausted quota would return 429.
+
+**Why the others are wrong:**
+- **A. Model changed / C. Guardrail strict / D. Quota exhausted:** none produce an authorization failure at the tool.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-identity
 
 </details>
@@ -114,8 +161,13 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-id
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The text arrives in a tool result, which is third-party content.
-**Incorrect:** A — the customer did not type it; C and D — different risks.
+**Correct: B.** The malicious sentence is stored in your own database, but it reaches the model as the **result of a tool call**. That is *third-party content*, so it is an **indirect (document) attack**. Add an **Indirect attack** control on the **tool response** intervention point (Preview, only for tools that support moderation) with Annotate and block. Also treat order notes as untrusted data, and never let the agent output card numbers (the tool should not return them at all).
+
+**Why the others are wrong:**
+- **A. User prompt attack on input:** the customer did not type it; the note was written earlier.
+- **C. Protected material:** detects copyrighted text.
+- **D. Hate:** detects hateful content, not instructions.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points
 
 </details>
@@ -129,8 +181,22 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Error paths need explicit instructions and tests.
-**Incorrect:** A — causes the bug; C and D — unrelated.
+**Correct: B.** Failure paths are rarely tested, so models fill the gap with a plausible answer. Do two things: (1) tell the agent exactly what to do when a tool fails ("say you cannot check right now, offer to retry or hand off; never state order status without a successful tool result"); (2) add **tool-error scenarios** to the test suite (the mock tool returns a 500 or timeout) and check the answer in evaluation, for example with the **Task Adherence** evaluator or a custom check.
+
+```python
+instructions = """Use tools for order facts.
+If a tool returns an error or no result, say you cannot check the order right now
+and offer to create a case for a person. Never guess a status."""
+
+test_case = {"query": "Where is order 4711?", "mock_tool_result": {"error": "503"},
+             "must_not_contain": ["shipped", "delivered"], "must_contain": ["cannot"]}
+```
+
+**Why the others are wrong:**
+- **A. Let it guess:** this is what caused the bug.
+- **C. Lower `max_output_tokens`:** shortens answers, does not change truthfulness.
+- **D. Remove tracing:** hides evidence.
+
 Source: case study sections 5 and 7
 
 </details>

@@ -48,8 +48,22 @@ Based on the [deep dive](../deep-dives/text-analysis-language-and-llms.md).
 
 <details><summary>Answer</summary>
 
-**Correct: B.** PII detection finds and redacts personal data in text, conversations and documents.
-**Incorrect:** the other options do not fit — do not redact personal data.
+**Correct: B.** Azure Language **PII detection** finds personal data (phone numbers, card numbers, SSNs, names, addresses) in text, conversations and documents, and returns **redacted text** in which each value is replaced (for example by `[PhoneNumber]` or asterisks). Run it **before** sending content to a model, so the model, its logs and its outputs never see the raw values.
+
+```python
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.identity import DefaultAzureCredential
+
+client = TextAnalyticsClient(endpoint, DefaultAzureCredential())
+doc = client.recognize_pii_entities([transcript], language="en")[0]
+safe_text = doc.redacted_text            # send THIS to the model
+```
+
+**Why the others are wrong:**
+- **A. Language detection:** returns the language code.
+- **C. Sentiment analysis:** returns positive/neutral/negative.
+- **D. Key phrase extraction:** returns important phrases and keeps the raw values.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/overview
 
 </details>
@@ -63,8 +77,22 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/ove
 
 <details><summary>Answer</summary>
 
-**Correct: D.** The retirement notice directs new projects to Foundry models.
-**Incorrect:** the other options do not fit — retiring; C and D — unrelated.
+**Correct: D.** Learn's retirement notice for the Language features (key phrase extraction, sentiment analysis and others) says they retire on **March 31, 2029** and directs new projects to **Foundry models** (LLMs with structured output). So for a new sentiment project, prompt a model for a fixed schema, and evaluate it against labeled examples. Existing apps keep working until the retirement date but should plan migration.
+
+```python
+r = client.chat.completions.create(
+    model="gpt-4.1-mini", temperature=0,
+    messages=[{"role": "system", "content": "Return JSON: {\"sentiment\": \"positive|neutral|negative\", \"confidence\": 0-1}"},
+              {"role": "user", "content": review_text}],
+    response_format={"type": "json_object"},
+)
+```
+
+**Why the others are wrong:**
+- **A. Language sentiment because it is cheaper:** it is the retiring option, so not recommended for new work.
+- **B. Document Intelligence:** extracts fields from documents.
+- **C. Custom Translator:** custom machine translation.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/key-phrase-extraction/overview
 
 </details>
@@ -78,8 +106,19 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/key
 
 <details><summary>Answer</summary>
 
-**Correct: A.** CLU predicts intents and extracts entities.
-**Incorrect:** the other options do not fit — different tasks.
+**Correct: A.** **Conversational language understanding (CLU)** maps an utterance to an **intent** (what the user wants: `TurnOffLight`) and **entities** (the details: `Room = kitchen`). You label example utterances, train, deploy, then call the prediction API; your bot decides the action from the top intent and fills in the entities.
+
+```json
+{ "query": "turn off the lights in the kitchen",
+  "prediction": { "topIntent": "TurnOffLight",
+                  "entities": [ { "category": "Room", "text": "kitchen" } ] } }
+```
+
+**Why the others are wrong:**
+- **B. Language detection:** identifies the language.
+- **C. Extractive summarization:** selects key sentences.
+- **D. Protected material detection:** detects copyrighted text in output.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/conversational-language-understanding/overview
 
 </details>
@@ -93,8 +132,24 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/con
 
 <details><summary>Answer</summary>
 
-**Correct: B.** CQA supports multi-turn prompts and metadata filtering.
-**Incorrect:** the other options do not fit — do not provide a knowledge base.
+**Correct: B.** **Custom question answering (CQA)** builds a knowledge base from FAQ pages, documents or manual question-answer pairs. It supports **multi-turn conversations** (follow-up prompts attached to an answer) and **metadata filters** (for example `product=router`, restricting which answers are searched).
+
+```python
+from azure.ai.language.questionanswering import QuestionAnsweringClient
+from azure.ai.language.questionanswering.models import MetadataFilter
+
+client = QuestionAnsweringClient(endpoint, credential)
+answer = client.get_answers(
+    question="How do I reset it?", project_name="faq", deployment_name="production",
+    filters={"metadata_filter": MetadataFilter(metadata=[("product", "router")])},
+)
+```
+
+**Why the others are wrong:**
+- **A. Custom NER:** extracts entities from text, no knowledge base.
+- **C. Opinion mining:** sentiment about aspects of a text.
+- **D. Key phrase extraction:** lists main phrases.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/question-answering/overview
 
 </details>
@@ -108,8 +163,17 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/que
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Redaction replaces the value with a label, removing the risk from the stored text.
-**Incorrect:** A and D keep the SSN; C loses the text.
+**Correct: B.** The goal is to leave no SSN in storage. PII detection returns both an **entities array** (what and where) and **redacted text** (the same text with each value replaced by a label). Store the **redacted text** and discard the original (or keep it only in a tightly controlled system if the law requires it). The entities array alone does not change the original text.
+
+```python
+doc = client.recognize_pii_entities([text], categories_filter=["USSocialSecurityNumber"])[0]
+db.save(transcript_id, doc.redacted_text)         # "My SSN is ***********"
+```
+
+**Why the others are wrong:**
+- **A. Original + entities / D. Original in a private blob:** both still contain the SSN.
+- **C. Hash of the entities only:** the transcript text would be lost.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/language-service/personally-identifiable-information/overview
 
 </details>

@@ -48,8 +48,24 @@ Based on the [deep dive](../deep-dives/image-and-video-generation.md).
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Mask-based inpainting changes only masked regions.
-**Incorrect:** the other options do not fit — may change product; C — video; D — analysis.
+**Correct: C.** The **edit** endpoint sends the original image plus a **mask** (same size; the transparent/marked area shows where to repaint) and a prompt. Only the masked region is regenerated (inpainting), so the product in the foreground stays unchanged. A new generation would redraw everything, including the product.
+
+```python
+result = client.images.edit(
+    model="<deployment>",
+    image=open("photo.png", "rb"),
+    mask=open("background-mask.png", "rb"),      # marks the background only
+    prompt="A sunny beach with palm trees",
+)
+```
+
+The edit endpoint uses **multipart/form-data**, not JSON. Check the result by comparing the unmasked pixels with the original.
+
+**Why the others are wrong:**
+- **A. Remix:** a video feature (targeted edit of an existing video).
+- **B. New generation:** may change the product as well.
+- **D. Image Analysis:** reads and describes an image; it does not edit.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
 
 </details>
@@ -63,8 +79,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Video generation is asynchronous.
-**Incorrect:** the other options do not fit — do not fix design.
+**Correct: C.** Video generation takes from tens of seconds to minutes, longer than a web request or gateway timeout. The API is an **asynchronous job**: create the job, return the job ID immediately, **poll** (with a delay) until a terminal status, then download. In a web app, store the job ID, let a worker poll, and notify the user when it is ready.
+
+```python
+job = requests.post(f"{endpoint}/openai/v1/video/generations/jobs?api-version=preview",
+                    headers=headers, json={"model": "<deployment>", "prompt": prompt,
+                                           "width": "1080", "height": "1080", "n_seconds": "5"}).json()
+store_job_id(user_id, job["id"])        # return to the browser now: "Your video is being made"
+```
+
+**Why the others are wrong:**
+- **A. Smaller image:** does not change how long generation takes.
+- **B. Synchronous call:** is exactly what times out.
+- **D. Longer timeout:** hides the symptom, ties up server connections, and still breaks on a restart.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation
 
 </details>
@@ -78,8 +106,18 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-ge
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The model was retired.
-**Incorrect:** the other options do not fit — not the reason.
+**Correct: B.** `dall-e-3` was **retired on March 4, 2026**, so calls to a deployment of it fail. Move to the `gpt-image` family (for example `gpt-image-2`; `gpt-image-1.x` models are limited access) and update the deployment name and parameters, because the new models always return base64 (`b64_json`) and have different `size` and `quality` rules.
+
+```python
+result = client.images.generate(model="<gpt-image-deployment>", prompt="A lighthouse at dawn", size="1024x1024")
+image_bytes = base64.b64decode(result.data[0].b64_json)    # no response_format parameter
+```
+
+**Why the others are wrong:**
+- **A. Wrong region:** would say the model is unavailable in that region, not retired.
+- **C. No mask:** a mask is only needed for edits.
+- **D. Bad key:** would give 401.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
 
 </details>
@@ -93,8 +131,18 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Terminal states.
-**Incorrect:** the other options do not fit — not statuses.
+**Correct: A.** A video job moves through states such as queued and running, and ends in one of three **terminal** states: **`succeeded`**, **`failed`** or **`cancelled`**. Your polling loop must stop on any of the three (not only `succeeded`), otherwise a failed job makes you poll forever. On `succeeded` read `generations` and download; on `failed` or `cancelled` log the error and decide to retry or alert.
+
+```python
+while status not in ("succeeded", "failed", "cancelled"):
+    time.sleep(10)                       # delay, not a tight loop (avoids throttling)
+    status = get_job(job_id)["status"]
+```
+
+**Why the others are wrong:**
+- **B. ready, D. open/closed:** not statuses in this API.
+- **C. queued only:** queued is the first state, not the end.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation
 
 </details>
@@ -108,8 +156,24 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-ge
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Learn describes `input_reference` as a single reference image whose size must match the video size.
-**Incorrect:** A, C, D — not the reference-image parameter.
+**Correct: B.** For Sora 2 the reference image is **`input_reference`**, an optional **file** (JPEG, PNG or WebP) sent in a **multipart/form-data** request, together with `prompt`, `model` and `size`. Its dimensions must **match the video `size` exactly** (Learn lists `720x1280` and `1280x720`), so resize first. The image acts as the first frame anchor; describe the motion in the prompt.
+
+```python
+video = client.videos.create(
+    model="<sora-deployment>",
+    prompt="Slow orbit around the product on a marble table",
+    size="1280x720",
+    input_reference=open("product-1280x720.png", "rb"),
+)
+```
+
+With raw REST, remove the `Content-Type: application/json` header and let your HTTP library set the multipart boundary.
+
+**Why the others are wrong:**
+- **A. Base64 in `prompt`:** the prompt is text; the image is a file part.
+- **C. URL in `n_variants`:** `n_variants` is a number (1 to 4) of video versions.
+- **D. Mask file:** masks are for image edits, not for video reference.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/video-generation
 
 </details>
