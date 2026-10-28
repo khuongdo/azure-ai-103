@@ -66,8 +66,18 @@ Answers and explanations come from the [deep dive](../deep-dives/platform-networ
 
 <details><summary>Answer</summary>
 
-**Correct: D.** The current model is a Foundry resource (administrative, security and monitoring boundary) containing projects. Hub-based projects belong to the classic experience.
-**Incorrect:** A and B — they describe the older hub and Azure OpenAI structure; C — new investment is on Foundry projects, and there is no direct upgrade path for agents and data from hub-based projects.
+**Correct: D.** In the current Foundry model, the **Foundry resource** (a Cognitive Services account of kind AIServices) is the top-level boundary for administration, security, networking and monitoring, and it contains **projects**. Create one project per team or per access pattern: each project has its own agents, files, connections and managed-identity scope, so teams are separated without separate top-level resources. **Hub-based projects** belong to the classic experience and there is no direct upgrade path for agents and data.
+
+```
+Foundry resource (network, policy, monitoring)
+ ├── project-team-a   (agents, connections, role assignments for team A)
+ └── project-team-b
+```
+
+**Why the others are wrong:**
+- **A. One Azure OpenAI resource per team plus a hub / B. One hub with a workspace per team:** describe the older structure.
+- **C. Classic hub-based projects:** new investment is on Foundry projects.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry
 
 </details>
@@ -81,8 +91,26 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Private endpoints to Azure AI Search, Storage and Cosmos DB are not created automatically. You must create them and make sure private DNS resolves each endpoint to a private IP.
-**Incorrect:** A — it defeats the isolation goal; C — a project does not change dependency networking; D — deployment type is unrelated.
+**Correct: B.** Turning off public access and adding a private endpoint for the Foundry resource secures only that resource. Agent Service also uses **dependencies**: Cosmos DB (conversations), Storage (files) and Azure AI Search (vector stores). **Their private endpoints are not created automatically.** Each dependency needs its own private endpoint, and a **private DNS zone** linked to the VNet so that its name resolves to a private IP.
+
+| Resource | Typical private DNS zone |
+|---|---|
+| Foundry / Cognitive Services | `privatelink.cognitiveservices.azure.com`, `privatelink.openai.azure.com`, `privatelink.services.ai.azure.com` |
+| Cosmos DB (NoSQL) | `privatelink.documents.azure.com` |
+| Storage (blob) | `privatelink.blob.core.windows.net` |
+| Azure AI Search | `privatelink.search.windows.net` |
+
+```bash
+az network private-endpoint create -g rg -n pe-cosmos --vnet-name vnet --subnet pe-subnet \
+  --private-connection-resource-id <cosmos-account-id> --group-id Sql --connection-name cosmos-conn
+```
+
+Verify with `nslookup <account>.documents.azure.com` from inside the VNet: it must return a private IP.
+
+**Why the others are wrong:**
+- **A. Re-enable public access:** defeats the goal.
+- **C. Another project / D. Deployment type:** neither changes how dependencies are reached.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>
@@ -96,8 +124,19 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-ne
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Each project needs up to 5 containers of 1,000 RU/s when it uses Responses API agents: 5 x 1,000 x 3 = 15,000 RU/s.
-**Incorrect:** A — that is the minimum account throughput for a standard setup in general; B — it ignores the two containers created for Responses API agents in some projects; D — it assumes 3 containers per project (3 x 1,000 x 3), which only holds for classic agents.
+**Correct: C.** For agents built on the Responses API with a bring-your-own Cosmos DB account, **each project** needs up to **5 containers at 1,000 RU/s each** (5,000 RU/s per project). Three projects: 3 x 5 x 1,000 = **15,000 RU/s**.
+
+| Answer | Arithmetic it matches |
+|---|---|
+| 3,000 | 1 container x 3 projects |
+| 6,000 | 2 containers x 3 projects |
+| 9,000 | 3 containers x 3 projects (classic agents) |
+| **15,000** | **5 containers x 3 projects (Responses API agents)** |
+
+Plan this when you size the account and set autoscale or provisioned throughput; a too-small account causes 429 errors on agent conversations.
+
+**Why the others are wrong:** each uses the wrong container count (see the table).
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/use-your-own-resources
 
 </details>
@@ -111,8 +150,17 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/use-your-o
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The standard setup stores files, conversations and vector stores in your resources, giving full ownership and control.
-**Incorrect:** A — basic setup uses platform-managed storage; C — deployment types do not control agent data storage; D — Application Insights stores telemetry, not agent state.
+**Correct: B.** Agent Service has two setups:
+- **Basic:** Microsoft-managed storage for agent data.
+- **Standard:** your own **Azure Storage** (files), **Cosmos DB** (conversations, agent state) and **Azure AI Search** (vector stores). You own, secure, back up and audit the data, and can put it behind private endpoints.
+
+If the requirement is "our own Azure resources", choose Standard. You also take on throughput planning (RU/s), roles for the project identity and DNS.
+
+**Why the others are wrong:**
+- **A. Basic setup:** platform-managed storage.
+- **C. Developer deployment type:** deployment types control model inference, not agent data.
+- **D. Application Insights:** telemetry only.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/use-your-own-resources
 
 </details>
@@ -126,8 +174,23 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/use-your-o
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Agents defined as code can be redeployed, and Cosmos DB continuous backup (7-day point-in-time restore) recovers definitions and conversations. Delete locks help prevent this in the first place.
-**Incorrect:** A — there is no built-in agent restore; B — not a documented recovery path; D — deployment type has no effect on agent state.
+**Correct: C.** There is no built-in agent backup, so protect state yourself:
+1. **Definitions as code:** keep agent definitions and prompts in Git (IaC or SDK scripts) and redeploy.
+2. **Cosmos DB continuous backup** (point-in-time restore, 7-day window in the standard tier) for conversations and thread data.
+3. **Delete locks** on the Foundry resource and dependencies, and restricted roles, to prevent accidental deletion.
+
+```bash
+az cosmosdb restore --target-database-account-name cosmos-restored \
+  --account-name cosmos-prod --restore-timestamp 2026-10-27T08:00:00Z \
+  --location westeurope --resource-group rg
+az lock create --name no-delete --lock-type CanNotDelete --resource-group rg
+```
+
+**Why the others are wrong:**
+- **A. Portal restore:** does not exist.
+- **B. Support ticket:** not a documented recovery path.
+- **D. Standard deployment:** has no effect on agent state.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -141,8 +204,24 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: C.** The agent subnet must be delegated to `Microsoft.App/environments` and cannot be shared across Foundry resources. A /24 is recommended.
-**Incorrect:** A — subnets cannot be shared; B — public ranges are not allowed; D — far too small; the portal flow needs /27 or larger and /24 is recommended.
+**Correct: C.** For a network-secured Agent Service, the **agent subnet** hosts the agent runtime (container apps environment), so it must be **delegated to `Microsoft.App/environments`**, and it is **dedicated to one Foundry resource** (cannot be shared). Use at least /27 for the portal flow; **/24 is recommended**. It must be a private range.
+
+```bicep
+resource agentSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
+  parent: vnet
+  name: 'agent-subnet'
+  properties: {
+    addressPrefix: '10.0.2.0/24'
+    delegations: [ { name: 'app-env', properties: { serviceName: 'Microsoft.App/environments' } } ]
+  }
+}
+```
+
+**Why the others are wrong:**
+- **A. Shared subnet:** not allowed.
+- **B. Public IP range:** not allowed.
+- **D. /30:** far too small.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>
@@ -156,8 +235,19 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-ne
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Data-plane access to a private Foundry requires network reachability, so run CI from a self-hosted runner or agent in the VNet (or use Bastion to a jump host).
-**Incorrect:** A — it removes the isolation requirement; B — it does not make the Foundry data plane reachable; C — the region does not change reachability.
+**Correct: D.** Control-plane calls (create resources) go through Azure Resource Manager, which is public. Data-plane calls (create agents, upload files, call the project endpoint) go to the private endpoint, which a public hosted runner cannot reach. Run the pipeline on a **self-hosted runner or agent inside the VNet** (or a peered VNet), or use Bastion to a jump host.
+
+```yaml
+jobs:
+  deploy:
+    runs-on: [self-hosted, vnet-runner]      # runner VM or container inside the VNet
+```
+
+**Why the others are wrong:**
+- **A. Re-enable public access:** removes the isolation requirement.
+- **B. Add runner IP to Storage firewall only:** does not make the Foundry data plane reachable.
+- **C. Different region:** does not change reachability.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>
@@ -171,8 +261,20 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-ne
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Policy enforces the rule centrally. Entra ID with managed identities gives per-caller identity and role limits.
-**Incorrect:** A — a convention, not enforcement; B — keys still exist and grant full access; C — rotation reduces exposure but does not remove keys.
+**Correct: D.** A rule needs **enforcement**. **Azure Policy** can *audit or deny* resources with key-based (local) authentication enabled, across a subscription or management group, using a built-in definition such as "Cognitive Services accounts should have local authentication methods disabled". Applications then authenticate with **Microsoft Entra ID and managed identities**, which give per-caller identity, role-based limits and an audit trail.
+
+```bicep
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
+  name: foundryName
+  properties: { disableLocalAuth: true }     // keys no longer work
+}
+```
+
+**Why the others are wrong:**
+- **A. Ask developers:** a convention, not enforcement.
+- **B. Key Vault:** the keys still exist and grant full access.
+- **C. Rotate weekly:** shortens exposure but keys remain.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -186,8 +288,13 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: B.** All agents in a project share one managed identity, and project-level connections prevent future projects from inheriting access.
-**Incorrect:** A — resource-level connections would be inherited by other projects; C — naming is not access control; D — Foundry Owner is highly privileged and grants broad access.
+**Correct: B.** Think of the **project** as the isolation unit inside a Foundry resource: agents in a project share one managed identity, and **project-level connections** are visible only to that project. With separate projects for Team A and Team B, each team's tools, data connections and role assignments are separate. Resource-level connections are inherited by every project, so avoid them for team-specific secrets or data.
+
+**Why the others are wrong:**
+- **A. One project, shared connections:** every agent can use every connection.
+- **C. Naming convention:** not access control.
+- **D. Foundry Owner:** highly privileged; gives each team broad access, including to the other's resources.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -201,8 +308,22 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Provisioning and runtime use different identities. The project managed identity is what running agents use to reach Cosmos DB, Search and Storage, and it needs its own data-plane roles.
-**Incorrect:** B — not related; C — that role is for managing accounts, not for agent data access; D — subnet size does not grant data access.
+**Correct: A.** Two different identities act at two different times:
+- **Provisioning time:** the deploying identity (pipeline) needs rights to create resources and assign roles.
+- **Run time:** the **project managed identity** reads and writes conversations, files and vectors. It needs **data-plane roles** on the dependencies, for example Cosmos DB data roles for the agent databases/containers, Storage Blob Data Contributor, and Search Index Data Contributor (plus Search Service Contributor if it creates indexes).
+
+Provisioning succeeds because the pipeline identity has its rights; running agents fail because the project identity has none.
+
+```bash
+az role assignment create --assignee-object-id <project-identity-principal-id> \
+  --assignee-principal-type ServicePrincipal --role "Storage Blob Data Contributor" --scope <storage-id>
+```
+
+**Why the others are wrong:**
+- **B. Second subscription:** unrelated.
+- **C. Foundry Account Owner:** a management role, not agent data access.
+- **D. Larger subnet:** address space does not grant access.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>
@@ -216,8 +337,17 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-ne
 
 <details><summary>Answer</summary>
 
-**Correct: B.** A private endpoint puts the service on a private IP and public access can then be turned off.
-**Incorrect:** A — public IP remains; C — does not remove the public endpoint; D — unrelated.
+**Correct: B.** A **private endpoint** gives the resource a private IP inside your VNet. Once it exists and DNS resolves to it, set **public network access = Disabled**, so the public endpoint stops answering. Traffic from outside the VNet (or peered networks) can no longer reach the resource.
+
+```bash
+az cognitiveservices account update -g rg -n my-aoai --public-network-access Disabled
+```
+
+**Why the others are wrong:**
+- **A. Service endpoint:** the service keeps its public IP; the subnet is only allowed through a firewall rule.
+- **C. NSG rule only:** does not remove the public endpoint.
+- **D. Larger quota:** unrelated.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
 
 </details>

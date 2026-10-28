@@ -66,8 +66,29 @@ Answers and explanations come from the [deep dive](../deep-dives/rag-retrieval-a
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Groundedness checks that the response stays inside the provided context (precision), so invented facts score low.
-**Incorrect:** A — Coherence only measures logical flow; B — Relevance can still pass when the answer addresses the question but contains invented facts; D — Response Completeness measures missing expected information (recall), not extra content.
+**Correct: C.** The RAG evaluators answer different questions:
+| Evaluator | Measures | Low score means |
+|---|---|---|
+| Retrieval | Is the retrieved context relevant to the query? | Search found the wrong chunks |
+| **Groundedness** | Is every claim in the answer **supported by the context** (precision)? | **Answer contains invented content** |
+| Relevance | Does the answer address the question? | Off-topic answer |
+| Response Completeness | Does the answer include the expected information (recall)? | Missing content |
+| Coherence | Is the text logically fluent? | Disorganized text |
+
+A response can be relevant yet hold invented facts, which is exactly the case described.
+
+```python
+from azure.ai.evaluation import GroundednessEvaluator
+
+groundedness = GroundednessEvaluator(model_config=judge_config)
+print(groundedness(query=q, context=retrieved_chunks, response=answer))   # 1-5, with a reason
+```
+
+**Why the others are wrong:**
+- **A. Coherence:** flow only.
+- **B. Relevance:** passes if the answer addresses the question, even with invented facts.
+- **D. Response Completeness:** about missing information, not extra content.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/rag-evaluators
 
 </details>
@@ -81,8 +102,28 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Hybrid search runs keyword and vector queries in parallel and merges them with RRF. Keyword matching handles exact codes; vectors handle meaning. The semantic ranker improves the final order.
-**Incorrect:** A — a larger `k` does not fix the weakness of embeddings on near-identical codes; C — full-text alone loses natural-language matching, and an explicit `orderby` overrides relevance ranking; D — the semantic ranker only reranks existing results and does not add exact-match ability.
+**Correct: B.** Two failure modes are being fixed:
+- **Exact codes** like `SKU-48213-B`: embeddings represent meaning, so near-identical codes look the same; **keyword (BM25)** matches exact tokens.
+- **Natural-language descriptions:** keyword search misses synonyms; **vectors** match meaning.
+
+**Hybrid search** runs both queries in parallel and merges the two ranked lists with **Reciprocal Rank Fusion (RRF)**. The **semantic ranker** then re-ranks the top results with a language-understanding model.
+
+```python
+from azure.search.documents.models import VectorizableTextQuery
+
+results = search_client.search(
+    search_text="SKU-48213-B red waterproof jacket",             # keyword leg
+    vector_queries=[VectorizableTextQuery(text="red waterproof jacket", k_nearest_neighbors=50, fields="contentVector")],
+    query_type="semantic", semantic_configuration_name="default",   # re-rank
+    top=5,
+)
+```
+
+**Why the others are wrong:**
+- **A. Larger `k`:** returns more vector neighbors but does not fix exact-code weakness.
+- **C. Full-text only with `orderby`:** loses synonyms and overrides relevance order.
+- **D. Semantic ranker on vector-only:** reranks existing results; adds no exact matching.
+
 Source: https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview
 
 </details>
@@ -96,8 +137,25 @@ Source: https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview
 
 <details><summary>Answer</summary>
 
-**Correct: A.** X scores 1/61 = 0.0164. Y scores 1/63 + 1/62 = 0.0159 + 0.0161 = 0.0320. Documents that appear in several lists are rewarded.
-**Incorrect:** B — a single top rank is worth less than two good ranks; C — the scores differ; D — RRF keeps documents found by only one method, they just score lower.
+**Correct: A.** RRF gives each document `1 / (rank + k)` for every list it appears in, then adds the scores (k = 60).
+- **X:** only keyword rank 1 → 1/(1+60) = 1/61 = **0.0164**.
+- **Y:** keyword rank 3 → 1/63 = 0.0159, vector rank 2 → 1/62 = 0.0161 → sum = **0.0320**.
+
+Y has about twice X's score, so Y ranks first. Lesson: RRF rewards **agreement between methods**; one top rank is not enough against two good ranks.
+
+```python
+def rrf(ranks: list[int], k: int = 60) -> float:
+    return sum(1 / (r + k) for r in ranks)
+
+rrf([1])      # X = 0.0164
+rrf([3, 2])   # Y = 0.0320
+```
+
+**Why the others are wrong:**
+- **B. Best single rank wins:** the numbers show otherwise.
+- **C. Tie:** the scores differ.
+- **D. RRF drops single-list documents:** they stay, with a lower score.
+
 Source: https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking (the calculation is illustrative)
 
 </details>
@@ -111,8 +169,18 @@ Source: https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking (th
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Only the top 50 results move to semantic ranking. A document outside that window is never considered, so improve first-stage retrieval (for example set vector `k` to 50, tune chunking).
-**Incorrect:** A — it reranks text, hybrid and the text portion of vector queries; B — an empty search string is not charged and does not help ranking; C — scores range from 0 to 4, they do not gate promotion this way.
+**Correct: D.** The semantic ranker is a **second stage**: it takes only the **top 50** results of the first stage (BM25, vector or hybrid) and re-ranks them. A passage at position 80 never enters the window, so it cannot be promoted. Fix the first stage: set vector `k` and the text result size so that the right passage lands in the top 50, improve chunking, add hybrid search, fix field weights or filters.
+
+```
+Stage 1: BM25 + vector + RRF  → ranked list of many results
+Stage 2: semantic ranker      → re-ranks only the TOP 50 → returns top N with captions/answers
+```
+
+**Why the others are wrong:**
+- **A. Only pure vector queries:** it re-ranks text, hybrid and the text part of vector queries.
+- **B. Needs an empty search string:** not true.
+- **C. Score above 4:** reranker scores range 0 to 4, but they do not gate promotion this way.
+
 Source: https://learn.microsoft.com/en-us/azure/search/semantic-search-overview
 
 </details>
@@ -126,8 +194,28 @@ Source: https://learn.microsoft.com/en-us/azure/search/semantic-search-overview
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Learn recommends starting at 512 tokens with 25% overlap (128 tokens) and tuning from there.
-**Incorrect:** A — very small chunks lose context and no overlap risks cutting answers in half; C — the Text Split overlap must be less than half the maximum length and such a large overlap is wasteful; D — whole documents can exceed model limits and blur meaning.
+**Correct: B.** Microsoft's starting point is **512 tokens per chunk with 25% overlap (128 tokens)**. Too small loses context; too large blurs the embedding and may exceed limits; **overlap** keeps sentences that fall on a boundary in both chunks. Then tune with your own questions: compare Retrieval scores for different sizes.
+
+```json
+{
+  "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+  "textSplitMode": "pages",
+  "unit": "azureOpenAITokens",
+  "maximumPageLength": 512,
+  "pageOverlapLength": 128,
+  "context": "/document",
+  "inputs":  [{ "name": "text", "source": "/document/content" }],
+  "outputs": [{ "name": "textItems", "targetName": "pages" }]
+}
+```
+
+(For the Text Split skill the overlap must be less than half the maximum length.)
+
+**Why the others are wrong:**
+- **A. 128 tokens, no overlap:** small chunks lose context, no overlap cuts answers in half.
+- **C. 2,048 tokens with 75% overlap:** overlap above half is not allowed and wastes embeddings.
+- **D. One chunk per document:** may exceed the model limit and mixes topics.
+
 Source: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents
 
 </details>
@@ -141,8 +229,38 @@ Source: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chun
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Structured Outputs enforce the schema. In the strict subset all fields must be required, and optional fields are emulated with a union that includes `null`.
-**Incorrect:** A — prompts and few-shot improve consistency but do not guarantee the schema; B — JSON mode only guarantees valid JSON; D — strict mode requires all fields in `required`.
+**Correct: C.** Three levels of JSON control:
+| Method | Guarantee |
+|---|---|
+| Prompt + few-shot | Better consistency, no guarantee |
+| JSON mode | Output is **valid JSON**, any shape |
+| **Structured Outputs** (`strict: true`) | Output **matches your schema** |
+
+In strict mode every property must be in `required`; an optional field is expressed as a **union with `null`**, and `additionalProperties` is `false`.
+
+```python
+schema = {
+  "name": "invoice",
+  "strict": True,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "vendor": {"type": "string"},
+      "po_number": {"type": ["string", "null"]},      # optional field
+    },
+    "required": ["vendor", "po_number"],              # all fields required
+    "additionalProperties": False,
+  },
+}
+r = client.chat.completions.create(model="gpt-4.1", messages=msgs,
+                                   response_format={"type": "json_schema", "json_schema": schema})
+```
+
+**Why the others are wrong:**
+- **A. Prompt and few-shot:** no guarantee.
+- **B. JSON mode:** valid JSON, but fields can be missing or renamed.
+- **D. Omit the optional field from `required`:** not allowed in strict mode.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured-outputs
 
 </details>
@@ -156,8 +274,17 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Good retrieval means the right context reached the model, but the answer contains content outside it, so the problem is in generation.
-**Incorrect:** B and C — those affect retrieval quality, which is already high; D — more documents help recall, not unsupported claims.
+**Correct: A.** Read the three scores together:
+- **Retrieval high** → the right context reached the model.
+- **Completeness good** → the answer includes the expected information.
+- **Groundedness low** → but it also contains claims **not in the context**.
+
+So the problem is **generation**. Tighten the prompt ("answer only from CONTEXT; otherwise say you don't know"), lower temperature, or use a stronger model; then re-run the same evaluation set to confirm.
+
+**Why the others are wrong:**
+- **B. Chunk size / C. OCR settings:** they affect retrieval, already high.
+- **D. Higher `top_k`:** helps recall, not unsupported claims.
+
 Source: deep dive section 6 (evaluator patterns), based on https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/rag-evaluators
 
 </details>
@@ -171,8 +298,24 @@ Source: deep dive section 6 (evaluator patterns), based on https://learn.microso
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Scanned pages are images with no text, so nothing can be chunked or embedded until OCR extracts it. In an indexer this is the OCR skill (`#Microsoft.Skills.Vision.OcrSkill`) working on normalized images.
-**Incorrect:** A — overlap cannot create missing text; B — reranking cannot rank content that was never indexed; C — vectors need text to embed.
+**Correct: D.** A scanned PDF is a picture of text. The indexer extracts no text, so there is nothing to chunk, embed or search. Add **OCR** to the indexing pipeline: configure the indexer to generate normalized images (`imageAction: generateNormalizedImages`) and add the **OCR skill**, then **merge** the OCR text with the document text before chunking, and map the output to a field.
+
+```json
+{
+  "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
+  "context": "/document/normalized_images/*",
+  "inputs":  [{ "name": "image", "source": "/document/normalized_images/*" }],
+  "outputs": [{ "name": "text",  "targetName": "ocrText" }]
+}
+```
+
+Check: run the indexer and confirm that `ocrText` is non-empty for a scanned page.
+
+**Why the others are wrong:**
+- **A. More overlap:** cannot create text that was never extracted.
+- **B. Semantic ranker:** cannot rank content that is not in the index.
+- **C. Vector queries:** vectors need text to embed.
+
 Source: https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search
 
 </details>
@@ -186,8 +329,26 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-sear
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Learn notes that structured outputs are not supported with Foundry Agent Service or bring-your-own-data scenarios.
-**Incorrect:** A — Assistants are also listed as unsupported; C — structured outputs require `parallel_tool_calls` to be `false`; D — the limitation is about the scenario, not the model's preview status.
+**Correct: B.** Learn states that **Structured Outputs are not supported with Foundry Agent Service** (and bring-your-own-data scenarios). So you cannot rely on the platform to enforce the schema for agent answers. Instead: ask for the format in instructions, **validate** the output (for example with Pydantic) and tool arguments in your code, and retry or fall back on failure. Use Structured Outputs where they are supported (direct model calls).
+
+```python
+from pydantic import BaseModel, ValidationError
+
+class Answer(BaseModel):
+    vendor: str
+    po_number: str | None
+
+try:
+    answer = Answer.model_validate_json(agent_output_text)
+except ValidationError:
+    answer = retry_with_error_feedback(agent_output_text)
+```
+
+**Why the others are wrong:**
+- **A. Assistants API only:** Assistants are also listed as unsupported.
+- **C. Needs `parallel_tool_calls` true:** it requires `false` where it applies.
+- **D. Only Preview models:** the limit is about the scenario, not model status.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured-outputs
 
 </details>
@@ -201,8 +362,19 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Similarity only makes sense in one embedding space. Re-embed the content with the new model, or keep using the old one for queries.
-**Incorrect:** A — the algorithm choice is unrelated; B — vector fields remain queryable, results are just meaningless; D — nothing disables the semantic ranker.
+**Correct: C.** A vector similarity score is only meaningful when both vectors come from the **same embedding model** (same space and dimensions). If you switch the query model, you compare "new-language" vectors with "old-language" vectors: the vectors are still queryable but the ranking is nearly random. Options: keep the old model for queries, or **re-embed every document** with the new model (re-index) and update the vectorizer and the field dimensions if they differ.
+
+```
+documents: embed(text, model=A) → stored vectors (space A)
+queries:   embed(question, model=B) → compared to space A   ✗ mismatch
+fix:       re-embed documents with model B, or query with model A
+```
+
+**Why the others are wrong:**
+- **A. Needs HNSW:** the algorithm is unrelated.
+- **B. Cannot be queried:** they can, with meaningless results.
+- **D. Semantic ranker disabled:** nothing does that.
+
 Source: deep dive section 2 (vector search rules), based on https://learn.microsoft.com/en-us/azure/search/vector-search-overview
 
 </details>
@@ -216,8 +388,21 @@ Source: deep dive section 2 (vector search rules), based on https://learn.micros
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Higher strictness filters weak documents, so the model says it cannot determine the answer.
-**Incorrect:** A, C, D — do not filter by relevance score. [NEEDS VERIFICATION] exact scale.
+**Correct: B.** In Azure OpenAI **On Your Data**, *strictness* sets how aggressively search results are filtered by relevance score. Higher strictness gives higher precision and lower recall: weak documents are dropped, and when nothing strong remains the model says it cannot determine the answer. On Your Data is retired (Oct 14, 2026), so the same idea in your own RAG is a **relevance-score threshold**: if the best reranker or similarity score is below it, do not call the model with weak context.
+
+```python
+hits = [h for h in results if h["@search.reranker_score"] >= 2.0]      # threshold: tune on your data
+if not hits:
+    return "I couldn't find a reliable answer in the documents."
+```
+
+(Exact strictness scale `[NEEDS VERIFICATION]`.)
+
+**Why the others are wrong:**
+- **A. Raise temperature:** more randomness.
+- **C. Lower top-k to 1:** fewer documents, but still no relevance filter.
+- **D. Disable citations:** removes traceability.
+
 Source: https://learn.microsoft.com/azure/ai-services/openai/references/on-your-data
 
 </details>

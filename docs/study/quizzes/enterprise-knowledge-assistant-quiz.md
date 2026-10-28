@@ -54,8 +54,21 @@ Based on the [case study](../real-world/enterprise-knowledge-assistant.md). Try 
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Permissions must be enforced at query time for the person asking. A service identity sees everything it can read, and the model can then repeat it.
-**Incorrect:** A — effort changes planning, not authorization; C — a prompt cannot reliably enforce access; D — moving content does not apply user permissions.
+**Correct: B.** A shared service identity can read everything, so the knowledge base can retrieve HR files and the model happily quotes them. Access must be enforced **at query time for the person asking**: authenticate the user with Microsoft Entra ID, forward the caller's identity (token) to the retrieval call, and sync **ACLs** from SharePoint so the index knows who may see each document. Then the HR page is never retrieved for someone without permission, so the model cannot repeat it.
+
+```python
+# sketch: forward the signed-in user's token so the service can trim results to what that user may read
+user_token = obo_exchange(request.headers["Authorization"])      # on-behalf-of flow
+results = retrieve(query, headers={"x-ms-query-source-authorization": user_token})
+```
+
+(The permission-trimming feature set is evolving; confirm the header and API version in Learn `[NEEDS VERIFICATION]`.)
+
+**Why the others are wrong:**
+- **A. Reasoning effort:** changes how much planning the retrieval does, not who may see what.
+- **C. Stricter prompt:** a prompt cannot reliably enforce access control.
+- **D. Move to Blob Storage:** moving files does not apply user permissions.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-foundry-iq
 
 </details>
@@ -69,8 +82,19 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** This is a content problem. The system retrieved a real document that is simply outdated.
-**Incorrect:** A and C — they change wording or capability, not which document is retrieved; D — more chunks may add the outdated text again.
+**Correct: B.** The system worked as designed: it retrieved a real document that is simply outdated. This is a **content governance** problem, not a model problem. Fix it at the source: retire the old PDF (remove it from the index or mark it superseded), and store `effective_date`, `version` and `status` as metadata so retrieval can **filter** to current documents or boost the latest. Give each source an owner who retires stale content.
+
+```python
+results = search_client.search(
+    "returns policy",
+    filter="status eq 'current' and effective_date le 2026-10-28T00:00:00Z",
+)
+```
+
+**Why the others are wrong:**
+- **A. Lower temperature / C. Larger model:** change wording or reasoning, not which document is retrieved.
+- **D. More chunks:** may include the old text again and add noise.
+
 Source: case study section 7
 
 </details>
@@ -84,8 +108,21 @@ Source: case study section 7
 
 <details><summary>Answer</summary>
 
-**Correct: C.** File search (managed vector store) suits a small, static set owned by one team.
-**Incorrect:** A and B — they add sources, permissions and planning you do not need; D — custom code is the most work.
+**Correct: C.** Match the tool to the scale of the problem. Five people, 60 static PDFs, one team and one source: the agent's built-in **file search** tool creates and manages a vector store for you with almost no setup. Foundry IQ knowledge bases and agentic retrieval earn their cost when you have **multiple sources, permissions, planning of subqueries or large volumes**. Custom retrieval code is the most work and maintenance.
+
+```python
+from azure.ai.projects.models import FileSearchTool
+
+vector_store = openai.vector_stores.create(name="policies")
+openai.vector_stores.files.upload_and_poll(vector_store_id=vector_store.id, file=open("hr-policy.pdf", "rb"))
+tool = FileSearchTool(vector_store_ids=[vector_store.id])
+```
+
+**Why the others are wrong:**
+- **A. Knowledge base with three sources:** more sources and governance than needed.
+- **B. Custom Azure AI Search with agentic retrieval:** index, skillset and planner to maintain for 60 files.
+- **D. Hosted agent with custom retrieval:** the heaviest option.
+
 Source: case study section 3
 
 </details>
@@ -99,8 +136,26 @@ Source: case study section 3
 
 <details><summary>Answer</summary>
 
-**Correct: C.** The right context reached the model but the answer includes unsupported content.
-**Incorrect:** A and B — they affect retrieval, which is already high; D — capacity does not change faithfulness.
+**Correct: C.** Read RAG metrics as a chain:
+| Retrieval | Groundedness | Meaning | Fix |
+|---|---|---|---|
+| high | low | Right context found, answer adds unsupported content | **Generation**: prompt, temperature, model |
+| low | low | Context missing or wrong | **Retrieval**: chunking, hybrid search, reranking, OCR |
+| high | high, but incomplete | Context found, answer omits details | Completeness: prompt, more chunks |
+
+Here retrieval is already high, so changing chunk size or OCR would only add risk. Tighten the instructions ("answer only from the sources; say you don't know otherwise"), lower the temperature, or use a stronger model, then re-run the same golden set.
+
+```python
+from azure.ai.evaluation import GroundednessEvaluator, RetrievalEvaluator
+
+groundedness = GroundednessEvaluator(model_config)
+print(groundedness(query=q, context=retrieved_text, response=answer))   # score 1-5 plus reason
+```
+
+**Why the others are wrong:**
+- **A. Chunk size / B. OCR settings:** affect retrieval, which is fine.
+- **D. Search tier:** capacity does not change faithfulness.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/rag-evaluators
 
 </details>
@@ -114,8 +169,23 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Learn names the security-filter workaround for sources without permission inheritance.
-**Incorrect:** A — unsafe; C — ranking is unrelated; D — web sources do not solve internal permissions.
+**Correct: B.** If a source cannot carry permissions (no ACL inheritance), add them yourself: put a **collection of allowed group IDs** on each document at indexing time, and add a **filter** to every query built from the signed-in user's groups. Search then never returns documents the user's groups are not in.
+
+```python
+user_groups = ",".join(get_user_group_ids(token))          # from Entra ID, not from the model
+results = search_client.search(
+    query,
+    filter=f"group_ids/any(g: search.in(g, '{user_groups}'))",
+)
+```
+
+The filter must be added by your code (server side), never by the model or the client.
+
+**Why the others are wrong:**
+- **A. Ignore it:** the model will quote whatever it receives.
+- **C. Disable semantic ranking:** ranking is unrelated to access.
+- **D. Only web sources:** web sources do not solve internal permissions.
+
 Source: https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search
 
 </details>
@@ -129,8 +199,12 @@ Source: https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-sear
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Those four are GA in that version; other types remain in preview.
-**Incorrect:** A — not all types are GA; C and D — not the GA set.
+**Correct: B.** In Search REST API `2026-04-01`, four knowledge source types are GA: **`searchIndex`**, **`azureBlob`**, **`indexedOneLake`** and **`web`**. The other types (for example SharePoint-related and remote sources) stay in preview in that version, and preview features can change. A stable API version does not make every feature inside it GA, so check the feature status in Learn.
+
+**Why the others are wrong:**
+- **A. All types:** not all are GA.
+- **C. Only SharePoint / D. Only remote sources:** neither is the GA set.
+
 Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-migrate
 
 </details>
@@ -144,8 +218,12 @@ Source: https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Retrieved content arrives as a tool response; scan it before the agent uses or remembers it.
-**Incorrect:** A — hate detection does not target instruction injection; C and D — unrelated.
+**Correct: B.** The wiki page is retrieved by the knowledge base and delivered to the agent as a **tool response**: untrusted third-party text. That is an **indirect (document) attack**. Place an **Indirect attack** control at the **tool response** intervention point with Annotate and block, so the poisoned text is scanned **before the agent uses it or saves it to memory**. Combine it with least privilege (the agent should not be able to send user profiles to arbitrary URLs) and an output guardrail.
+
+**Why the others are wrong:**
+- **A. Hate on output:** detects hateful content, not injected instructions.
+- **C. Larger token limit / D. Hybrid search:** unrelated to injection.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points
 
 </details>

@@ -78,8 +78,20 @@ Answers and explanations come from the [deep dive](../deep-dives/observability-a
 
 <details><summary>Answer</summary>
 
-**Correct: B.** A trace records each model call, tool call, input and output in order, with latency and token usage.
-**Incorrect:** A — it simulates attacks, it does not explain one request; C — quota shows capacity, not behavior; D — it scores one quality dimension but does not show the steps.
+**Correct: B.** A **trace** is the recorded story of one request: spans for each model call, tool call (with arguments and result), retrieval step, with start/end times, latency and token usage. With tracing sent to **Application Insights** you can open the failing request and see "the agent called `get_order` with `order_id=47111` (typo), took 3.2 s, returned empty, then answered anyway". Other tools score or test; only a trace shows the steps of that single request.
+
+```python
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+conn = project.telemetry.get_application_insights_connection_string()
+configure_azure_monitor(connection_string=conn)     # spans from instrumented SDK calls go to App Insights
+```
+
+**Why the others are wrong:**
+- **A. AI red teaming agent:** simulates attacks; it does not explain one request.
+- **C. Quota usage:** capacity, not behavior.
+- **D. Groundedness evaluator:** one quality score, no steps.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/observability/concepts/trace-agent-concept
 
 </details>
@@ -93,8 +105,18 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/observability/concepts/t
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Viewing traces, insights and visualizations in Foundry requires a Log Analytics reader role, because telemetry lives in Application Insights.
-**Incorrect:** A — it manages resources but is not the telemetry read role; C — Storage is unrelated; D — it is a Cognitive Services role not intended for Foundry scenarios.
+**Correct: B.** Traces are stored in **Application Insights** (backed by a Log Analytics workspace). The Foundry portal reads them for you, so the signed-in person needs a **Log Analytics reader** role (for example Log Analytics Reader) on that workspace or Application Insights resource. Having a Foundry role is not enough because the data lives in a different resource.
+
+```bash
+az role assignment create --assignee <user-or-group-id> \
+  --role "Log Analytics Reader" --scope <log-analytics-or-app-insights-resource-id>
+```
+
+**Why the others are wrong:**
+- **A. Foundry Owner on the subscription:** manages resources but is not the telemetry read role.
+- **C. Contributor on Storage:** unrelated.
+- **D. Cognitive Services User:** lets you call Cognitive Services APIs, not read telemetry.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/observability/concepts/trace-agent-concept
 
 </details>
@@ -108,8 +130,30 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/observability/concepts/t
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Task Adherence measures whether the agent's actions follow its assigned task, rules and policy constraints.
-**Incorrect:** A — completion passes because the task was finished; C — it only checks technical tool errors; D — it checks whether the user's intent was understood.
+**Correct: B.** Agent evaluators look at different parts of the process:
+| Evaluator | Question it answers |
+|---|---|
+| Intent Resolution | Did the agent understand what the user wanted? |
+| Task Adherence | Did the agent follow its **assigned task, rules and policy**? |
+| Task Completion | Was the task finished? |
+| Tool Call Success | Did the tool calls run without technical errors? |
+| Tool Selection / Tool Input Accuracy | Right tool, right arguments? |
+| Tool Output Utilization | Did the agent use tool results correctly? |
+
+Recommending a fund broke a rule while still completing the request, so only Task Adherence fails.
+
+```python
+from azure.ai.evaluation import TaskAdherenceEvaluator
+
+evaluator = TaskAdherenceEvaluator(model_config=judge_model_config)
+print(evaluator(query=user_msg, response=agent_response, tool_definitions=tools))
+```
+
+**Why the others are wrong:**
+- **A. Task Completion:** passes; the task was completed.
+- **C. Tool Call Success:** checks technical errors only.
+- **D. Intent Resolution:** the intent was understood.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
 
 </details>
@@ -123,8 +167,13 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Tool Output Utilization measures whether the agent correctly understood and used the tool result in its reasoning and final response.
-**Incorrect:** A — the call succeeded, so this passes; B — the right tool was chosen; D — it compares the sequence of steps with an expected path and needs ground truth.
+**Correct: C.** **Tool Output Utilization** checks whether the agent correctly *used* what a tool returned. Here the tool call was right and successful, but the final answer contradicts the result: a process failure after the tool step. To diagnose, compare the three stages: selection (right tool?), input (right arguments?), output use (right interpretation?). Fix with clearer instructions ("always base the order status on the tool result"), and check for stale memory or conflicting context.
+
+**Why the others are wrong:**
+- **A. Tool Call Success:** the call succeeded, so it passes.
+- **B. Tool Selection:** the right tool was chosen.
+- **D. Task Navigation Efficiency:** compares the sequence of steps with an expected path and needs ground truth.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
 
 </details>
@@ -138,8 +187,15 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Post-production monitoring includes continuous evaluation, scheduled evaluation to detect drift, scheduled red teaming and Azure Monitor alerts on failed thresholds.
-**Incorrect:** A — too infrequent; B — tracing helps debugging but does not score quality; D — temperature changes randomness, not monitoring.
+**Correct: C.** Quality can drift without any code change: source content ages, user questions shift, the provider updates a model. Post-production monitoring has several layers: **continuous evaluation** of sampled production traffic, **scheduled evaluation** with a fixed test dataset (comparable over time), **scheduled red teaming**, and **Azure Monitor alerts** when scores cross thresholds.
+
+Example: weekly run of the 200-question golden set; groundedness falls from 4.6 to 4.1; an alert opens a ticket before customers complain.
+
+**Why the others are wrong:**
+- **A. Yearly re-run:** far too infrequent.
+- **B. Tracing alone:** helps debugging but does not score quality.
+- **D. Higher temperature:** only changes randomness.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability
 
 </details>
@@ -153,8 +209,21 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Saved versions are immutable. You can compare setup, chat output and YAML between versions and send requests to a specific version for rollout and rollback.
-**Incorrect:** A — saved versions cannot be edited in place; B — it loses history and the old ID becomes invalid; C — unsaved changes are temporary and cannot be fully evaluated or monitored.
+**Correct: D.** Saved agent versions are **immutable**: any change creates a new version, referred to as `name:version`. That gives you what the scenario needs: run the same inputs against `support:3` and `support:4`, compare setup, outputs and YAML, send traffic to a specific version, and **roll back** by pointing to the old one. Compare with evaluations, not by eye.
+
+```python
+v4 = project.agents.create_version(
+    agent_name="support",
+    definition=PromptAgentDefinition(model="gpt-4.1-mini", instructions=NEW_INSTRUCTIONS),
+)
+# run the same dataset against "support:3" and "support:4"; roll back by using "support:3" again
+```
+
+**Why the others are wrong:**
+- **A. Edit in place:** saved versions cannot be edited.
+- **B. Delete and recreate:** loses history and invalidates the old ID.
+- **C. Unsaved playground changes:** temporary; cannot be evaluated or monitored properly.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
 
 </details>
@@ -168,8 +237,18 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/developm
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Pinning the model version prevents unvalidated model changes from altering responses.
-**Incorrect:** B — quota does not control versions; C — networking is unrelated; D — sampling affects telemetry volume, not model versions.
+**Correct: A.** A model deployment can be set to **auto-upgrade** to newer model versions. A new version can phrase answers differently, follow instructions differently or call tools differently, so the agent "changes overnight". Set the deployment's version upgrade option to **no auto-upgrade** (pin the version), then run your evaluation suite on the new version in a separate deployment before switching.
+
+```json
+"properties": { "model": { "format": "OpenAI", "name": "gpt-4.1", "version": "2025-04-14" },
+                "versionUpgradeOption": "NoAutoUpgrade" }
+```
+
+**Why the others are wrong:**
+- **B. Higher quota:** capacity, not version control.
+- **C. Smaller agent subnet:** networking is unrelated.
+- **D. 100% sampling:** only changes how much telemetry you keep.
+
 Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
 
 </details>
@@ -183,8 +262,23 @@ Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/
 
 <details><summary>Answer</summary>
 
-**Correct: B.** An ID is invalidated when the agent is deleted. Polling a deleted ID never succeeds and only produces error traffic. Look up by name and create only if missing.
-**Incorrect:** A — it never succeeds; C — the problem is not latency; D — authentication is not the cause of a 404.
+**Correct: B.** A 404 on an ID that existed means the agent was **deleted** (or lives in another project). Retrying will never succeed and only floods the service with errors. Treat 404 as terminal for that ID. Use a **get-or-create by name** pattern at startup so the service self-heals.
+
+```python
+from azure.core.exceptions import ResourceNotFoundError
+
+def get_or_create_agent(project, name, definition):
+    try:
+        return project.agents.get(agent_name=name)           # look up by name, not a stored ID
+    except ResourceNotFoundError:
+        return project.agents.create_version(agent_name=name, definition=definition)
+```
+
+**Why the others are wrong:**
+- **A. Retry every second:** a deleted ID never reappears.
+- **C. Larger timeout:** 404 is not a latency problem.
+- **D. Key-based auth:** an authentication failure would be 401/403, not 404.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
 
 </details>
@@ -198,8 +292,21 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/developm
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The primary result passes only when every applicable component passes. Component scores, results and reasons identify the failing dimension.
-**Incorrect:** A — it tests attack resistance; C — it does not explain the failure; D — it hides the problem.
+**Correct: B.** The **Output Quality** composite evaluator runs several component evaluators (for example groundedness, relevance, coherence). Its primary result is **pass only when every applicable component passes**, so one weak dimension fails the whole. The result object includes each component's score, result and reason (for example `groundedness_result`, `output_quality_reason`). Read them to find the failing dimension, then fix that part (retrieval, prompt, model).
+
+```python
+result = output_quality_evaluator(query=q, response=r, context=ctx)
+failed = {k: v for k, v in result.items() if k.endswith("_result") and v == "fail"}
+print(failed, result.get("output_quality_reason"))
+```
+
+(Field names as in the question; confirm exact output keys in Learn.)
+
+**Why the others are wrong:**
+- **A. Red teaming:** tests attack resistance.
+- **C. Different judge model:** does not explain the failure.
+- **D. Disable the evaluator:** hides the problem.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
 
 </details>
@@ -213,8 +320,13 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-eval
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Publishing creates a distinct agent identity, and permissions held by the project identity do not transfer. The publish checklist should include reassigning the minimum required access.
-**Incorrect:** A — it tests the unpublished identity and would not catch the permission change; C — model size is unrelated; D — it removes visibility.
+**Correct: B.** **Publishing creates a distinct agent identity** and permissions given to the shared project identity **do not transfer**. In testing the agent used the project identity, so everything worked; after publishing the new identity has no roles on the tools' resources. Add a step to the **publish checklist**: list the resources the agent touches, grant **least-privilege** roles to the new identity, then run a smoke test on the published endpoint.
+
+**Why the others are wrong:**
+- **A. More evaluations on the unpublished agent:** they run with the old identity and cannot see the permission change.
+- **C. Smaller model:** unrelated.
+- **D. Tracing off:** removes the evidence.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
 
 </details>
@@ -228,8 +340,24 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/developm
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Data drift compares production data with a baseline and alerts at a threshold.
-**Incorrect:** B, C, D — unrelated to drift detection.
+**Correct: A.** Azure ML **model monitoring** compares production inputs with a **baseline** (usually training data) using signals such as **data drift**, prediction drift, data quality and feature attribution drift. When a metric crosses its **threshold**, Azure ML sends an **alert email** to the user who set up the monitor by default (you can add more recipients).
+
+```python
+from azure.ai.ml.entities import MonitorDefinition, MonitoringTarget, DataDriftSignal, AlertNotification
+
+monitor = MonitorDefinition(
+    compute=spark_compute,
+    monitoring_target=MonitoringTarget(ml_task="classification", endpoint_deployment_id=deployment_id),
+    monitoring_signals={"drift": DataDriftSignal()},
+    alert_notification=AlertNotification(emails=["ml-team@contoso.com"]),
+)
+```
+
+**Why the others are wrong:**
+- **B. Prompt caching:** reduces cost for repeated prompt prefixes.
+- **C. Content filter annotations:** report content safety categories.
+- **D. Larger compute SKU:** more power, no drift detection.
+
 Source: https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-model-performance
 
 </details>
@@ -243,8 +371,21 @@ Source: https://learn.microsoft.com/en-us/azure/machine-learning/how-to-monitor-
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Platform metrics are kept 93 days; a diagnostic setting stores them longer.
-**Incorrect:** A — too short; B — manual; D — unrelated.
+**Correct: C.** Azure Monitor **platform metrics** (processed tokens, request counts by status code, and so on) are kept for **93 days**. A year of quarterly reports needs a **diagnostic setting** that streams metrics to a **Log Analytics workspace** (or Storage) with the retention you choose; then query or build a workbook.
+
+```bash
+az monitor diagnostic-settings create --name to-law \
+  --resource <azure-openai-resource-id> --workspace <log-analytics-workspace-id> \
+  --metrics '[{"category":"AllMetrics","enabled":true}]'
+```
+
+For quick checks without a query, use **metrics explorer**, filter by status code and split by `ModelDeploymentName` to see 429s per deployment.
+
+**Why the others are wrong:**
+- **A. Default retention:** 93 days is shorter than a year.
+- **B. Screenshots:** manual and not queryable.
+- **D. Prompt caching:** unrelated.
+
 Source: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-platform-metrics
 
 </details>

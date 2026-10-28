@@ -54,8 +54,12 @@ Based on the [case study](../real-world/contact-center-voice-and-analytics.md). 
 
 <details><summary>Answer</summary>
 
-**Correct: B.** It decides when the caller has really finished, allowing natural pauses.
-**Incorrect:** A and D — presentation only; C — improves recognition of terms.
+**Correct: B.** **End-of-turn detection** decides when the caller has really finished speaking. A simple silence timer treats a pause ("I want to... um... cancel") as the end and the agent barges in. A semantic end-of-turn model considers the words as well as the silence, so natural thinking pauses are allowed while real endings still get a fast reply. Tune it by testing with real recordings that contain hesitations, and measure end-to-end latency, because waiting longer makes responses slower.
+
+**Why the others are wrong:**
+- **A. TTS voice / D. Avatar:** presentation only; they change how the agent sounds or looks, not when it speaks.
+- **C. Phrase list:** improves recognition of specific words, not turn timing.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live
 
 </details>
@@ -69,8 +73,24 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Phrase lists are lightweight just-in-time customization.
-**Incorrect:** A — heavier and charged separately; C and D — unrelated.
+**Correct: B.** A **phrase list** gives the recognizer a list of expected words and names at run time ("just-in-time" customization). It needs no training data, no model hosting and no extra cost, and you can change it per call. It biases recognition toward "FiberMax Duo" rather than "fiber max duo".
+
+```python
+import azure.cognitiveservices.speech as speechsdk
+
+recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
+phrases = speechsdk.PhraseListGrammar.from_recognizer(recognizer)
+phrases.addPhrase("FiberMax Duo")
+phrases.addPhrase("FiberMax Solo")
+```
+
+Escalation path: phrase list first; custom speech (train on audio/text, separate training and hosting cost) only if measurements show phrase lists are not enough.
+
+**Why the others are wrong:**
+- **A. Custom speech model:** heavier and charged separately.
+- **C. Switch language:** the language is already right; the issue is vocabulary.
+- **D. TTS avatars:** output feature, unrelated to recognition.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live
 
 </details>
@@ -84,8 +104,15 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Redact first so everything downstream can be stored and shown more widely.
-**Incorrect:** A — it leaks; C and D — unrelated.
+**Correct: B.** If PII is in the transcript when the summary is created, the LLM copies names and numbers into the summary and into every later field (topics, reason, quotes). Redacting afterwards means each output must be cleaned separately, and one miss leaks. Redact the **transcript first**, then run summarization and analytics on the redacted text; everything downstream can be stored and shown more widely. Use the Language service's **conversation PII** detection (turn-aware, asynchronous job) and choose a redaction style that keeps analytics useful (for example `[PERSON]` instead of blanks).
+
+Pipeline: batch transcription → **PII redaction** → summary / sentiment / reason code → store. Measure **PII recall** on a labeled sample, since a missed phone number is worse than an over-redaction.
+
+**Why the others are wrong:**
+- **A. Nothing:** the summaries leak PII.
+- **C. Longer summaries:** more text, more exposure.
+- **D. Cascaded model:** an architecture choice for live voice, unrelated to redaction order.
+
 Source: case study Part B
 
 </details>
@@ -99,8 +126,26 @@ Source: case study Part B
 
 <details><summary>Answer</summary>
 
-**Correct: B.** For three or more speakers you also set the `diarization` property (min and max). Diarization works only on mono audio.
-**Incorrect:** A — enough for two speakers only; C — would require re-recording; D — timestamps are not speaker labels.
+**Correct: B.** **Diarization** labels who spoke and works **only on mono audio** (on stereo, put each speaker on its own channel instead). `diarizationEnabled: true` alone handles **two speakers**. For **three or more** you must also give the `diarization` property with minimum and maximum speaker counts (maximum below 36). Files with diarization can be at most 240 minutes.
+
+```json
+{
+  "displayName": "call-0001",
+  "locale": "en-US",
+  "contentUrls": ["https://<account>.blob.core.windows.net/calls/0001.wav?<sas>"],
+  "properties": {
+    "diarizationEnabled": true,
+    "diarization": { "speakers": { "minCount": 1, "maxCount": 3 } },
+    "wordLevelTimestampsEnabled": true
+  }
+}
+```
+
+**Why the others are wrong:**
+- **A. `diarizationEnabled` only:** enough for two speakers.
+- **C. Stereo channels:** would need re-recording; the files are already mono.
+- **D. `wordLevelTimestampsEnabled`:** gives timing per word, not who said it.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription-create
 
 </details>
@@ -114,8 +159,14 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch
 
 <details><summary>Answer</summary>
 
-**Correct: B.** It is fully managed, low-latency speech-to-speech.
-**Incorrect:** A — more engineering and latency; C and D — file transcription, not live conversation.
+**Correct: B.** **Voice Live** is a fully managed API for real-time speech-to-speech conversations. It handles speech recognition, the model, voice synthesis, noise suppression, echo cancellation and end-of-turn detection in one connection over WebSocket, so you host nothing and avoid the hops between separate services. A *native speech-to-speech* model gives the lowest latency and the most natural prosody.
+
+Compare with a **cascaded** design (STT → LLM → TTS): you control each stage (phrase lists, custom speech, a specific text model) but you build more, and latency adds up across the hops.
+
+**Why the others are wrong:**
+- **A. Chain separate services yourself:** more engineering and more latency.
+- **C. Batch transcription / D. Fast transcription:** both transcribe audio *files*; neither holds a live conversation.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live
 
 </details>
@@ -129,8 +180,25 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Controlled values aggregate; free text does not.
-**Incorrect:** A and C — do not standardize; D — unrelated.
+**Correct: B.** A dashboard needs the same label for the same cause. If the model writes "billing problem", "bill issue" and "wrong charge", a group-by counts them as three reasons. Give the model a **controlled list of reason codes** and a **fixed JSON schema** (an enum), and validate the output. Free-text fields remain for details.
+
+```python
+from pydantic import BaseModel
+from typing import Literal
+
+class CallSummary(BaseModel):
+    reason: Literal["billing", "outage", "plan_change", "equipment", "other"]
+    sentiment: Literal["positive", "neutral", "negative"]
+    resolved: bool
+    summary: str   # free text, not aggregated
+
+# use structured outputs / response_format with this schema so the model cannot invent codes
+```
+
+**Why the others are wrong:**
+- **A. Bigger model / C. Longer summaries:** do not standardize wording.
+- **D. Disable sentiment:** unrelated to reason naming.
+
 Source: case study Part B step 5
 
 </details>

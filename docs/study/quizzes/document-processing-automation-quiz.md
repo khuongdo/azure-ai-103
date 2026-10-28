@@ -54,8 +54,19 @@ Based on the [case study](../real-world/document-processing-automation.md). The 
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Scans need OCR; read and layout provide it.
-**Incorrect:** A — it reads machine-readable internals; C — it proposes a schema; D — it analyzes call recordings.
+**Correct: B.** Content Understanding has *content-extraction* analyzers that turn a file into Markdown plus structure, and *field-extraction* analyzers that return named fields. A scan is just pixels, so it needs **OCR**: `prebuilt-read` returns text; `prebuilt-layout` adds tables, selection marks and structure. Use layout when the invoice has line-item tables, and then extract fields on top of it (for example with `prebuilt-invoice`).
+
+```python
+# pseudo-flow
+markdown = analyze("prebuilt-layout", scanned_invoice)   # OCR + tables
+fields   = analyze("prebuilt-invoice", scanned_invoice)  # typed invoice fields
+```
+
+**Why the others are wrong:**
+- **A. `prebuilt-digitalParse`:** reads the embedded text of born-digital files; a scan has no embedded text.
+- **C. `prebuilt-documentFieldSchema`:** proposes a field schema; it is not OCR.
+- **D. `prebuilt-callCenter`:** analyzes call recordings.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/prebuilt-analyzers
 
 </details>
@@ -69,8 +80,13 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 
 <details><summary>Answer</summary>
 
-**Correct: A.** It classifies and routes to the right procurement analyzer.
-**Incorrect:** B — unnecessary effort; C — extracts structure but not typed fields; D — defeats automation.
+**Correct: A.** `prebuilt-procurement` is a *composed* prebuilt analyzer: it first **classifies** each document as invoice, purchase order, receipt and so on, then **routes** it to the matching extractor, so the inbox can be processed without per-type logic. You can later copy and adapt it to add your own document types or fields.
+
+**Why the others are wrong:**
+- **B. Custom model per sender:** a lot of work, and a new sender breaks the process.
+- **C. `prebuilt-layout` only:** gives text and structure but not typed fields such as `VendorName` or `Total`.
+- **D. Manual sorting:** defeats automation.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/prebuilt-analyzers
 
 </details>
@@ -84,8 +100,19 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Learn advises copying the prebuilt analyzer rather than relying on it directly in production.
-**Incorrect:** A and C — unrelated; D — preview versions are not recommended for production.
+**Correct: B.** Prebuilt analyzers are maintained by Microsoft and can change between API versions (new fields, better models). A production pipeline whose downstream mapping expects a fixed output should not depend on that. Learn recommends **retrieving the prebuilt definition and creating your own custom analyzer from it**. Your copy is stable until you change it, and you can regression-test a new API version against a golden set before moving.
+
+```http
+GET  {endpoint}/contentunderstanding/analyzers/prebuilt-invoice?api-version=<ver>     # read the definition
+PUT  {endpoint}/contentunderstanding/analyzers/contoso-invoice?api-version=<ver>      # create your copy
+```
+
+(Check the REST reference for the current version and exact path.)
+
+**Why the others are wrong:**
+- **A. Larger model / C. Disable confidence scores:** unrelated to versioning.
+- **D. Preview API only:** preview versions are not recommended for production and change more often.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/prebuilt-analyzers
 
 </details>
@@ -99,8 +126,22 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Guardrails can block field generation while preserving extracted source content, so analysis can succeed with missing values.
-**Incorrect:** A and D — would create bad data; C — retries do not fix a guardrail detection.
+**Correct: B.** A call can return success (the file was processed) while a field is empty because a **content guardrail** blocked generating that value; the extracted source content is preserved, but the derived value is withheld. Your pipeline must not equate "HTTP 200" with "usable data". Rule: any warning, or any **required field that is missing**, sends the document to **human review** with the reason. Never post to the ERP with an invented value.
+
+```python
+required = ["VendorName", "InvoiceId", "InvoiceTotal"]
+missing = [f for f in required if not fields.get(f)]
+if missing or result.warnings:
+    queue_for_review(doc_id, reason={"missing": missing, "warnings": result.warnings})
+else:
+    post_to_erp(fields)
+```
+
+**Why the others are wrong:**
+- **A. Zero total:** creates bad financial data.
+- **C. Retry forever:** the guardrail will trigger again; retries only cost money.
+- **D. Ignore warnings:** the same risk as A.
+
 Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/overview
 
 </details>
@@ -114,8 +155,25 @@ Source: https://learn.microsoft.com/en-us/azure/ai-services/content-understandin
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Confidence says how sure the model is; grounding lets a reviewer verify; rules catch errors a confident model can still make.
-**Incorrect:** B — OCR does not rate field reliability; C and D — unrelated.
+**Correct: A.** Three signals work together:
+- **Confidence** says how sure the service is about each field (0 to 1).
+- **Grounding** points to where the value came from (page and bounding box), so a reviewer can verify quickly.
+- **Business rules** catch errors a confident model can still make: line items sum to the subtotal, subtotal + tax = total, vendor exists in master data, PO matches.
+
+Set thresholds per field (total stricter than notes), and measure the **error rate of auto-approved documents** with a monthly audit sample.
+
+```python
+def auto_approve(f: dict) -> bool:
+    total_ok = f["InvoiceTotal"].confidence >= 0.95
+    rules_ok = abs(sum(l.amount for l in f["Items"]) + f["Tax"].value - f["InvoiceTotal"].value) < 0.01
+    return total_ok and rules_ok and vendor_exists(f["VendorId"].value)
+```
+
+**Why the others are wrong:**
+- **B. OCR alone:** reads characters, gives no reliability for a field.
+- **C. Summaries:** do not measure field reliability.
+- **D. Larger chunk size:** a RAG setting, unrelated.
+
 Source: case study sections 4 and 5
 
 </details>
@@ -129,8 +187,24 @@ Source: case study sections 4 and 5
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Deterministic identifiers make retries and duplicates harmless.
-**Incorrect:** A — probabilistic; C — does not detect duplicates; D — loses audit trail.
+**Correct: B.** A model can only guess whether two documents are the same, and guesses are wrong sometimes. Use **deterministic** checks: a **file hash** (SHA-256) catches the identical file; an **idempotency key** built from vendor + invoice number + amount catches the same invoice in another file or format. Store the key with a unique constraint, so a retry or duplicate insert is rejected or returns the existing result.
+
+```python
+import hashlib
+
+file_hash = hashlib.sha256(pdf_bytes).hexdigest()
+idem_key = f"{vendor_id}|{invoice_number}|{amount:.2f}"
+if db.exists(file_hash) or db.exists(idem_key):
+    return "duplicate: skipped"
+post_to_erp(fields, idempotency_key=idem_key)
+db.save(file_hash, idem_key)
+```
+
+**Why the others are wrong:**
+- **A. Ask the model:** probabilistic, can miss or invent duplicates.
+- **C. Higher confidence thresholds:** measures extraction certainty, not duplication.
+- **D. Delete older invoices:** loses the audit trail.
+
 Source: case study sections 5 and 9
 
 </details>

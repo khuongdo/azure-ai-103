@@ -45,8 +45,20 @@ Based on the [deep dive](../deep-dives/prompt-engineering-parameters-and-reflect
 
 <details><summary>Answer</summary>
 
-**Correct: B.** An out reduces forced guessing.
-**Incorrect:** the other options do not fit — worsen or unrelated.
+**Correct: B.** A model is trained to produce an answer, so when the context lacks the answer it often **invents** one (hallucination). Giving an explicit "out" such as "If the answer is not in the context, reply: I don't know" makes the safe behavior available and cheap. Combine with grounding data, citations, and an evaluation case where the answer is missing, to check that the model really says it.
+
+```python
+system = """Answer using only the CONTEXT below.
+If the CONTEXT does not contain the answer, reply exactly: "I don't have that information."
+CONTEXT:
+{context}"""
+```
+
+**Why the others are wrong:**
+- **A. Remove examples:** may lower quality, and examples can actually anchor the format.
+- **C. Raise temperature:** adds randomness and more invention.
+- **D. Shorten context:** can remove the needed facts and increase guessing.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
 
 </details>
@@ -60,8 +72,21 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-e
 
 <details><summary>Answer</summary>
 
-**Correct: D.** Models weigh recent text more.
-**Incorrect:** the other options do not fit — not helpful.
+**Correct: D.** Models pay more attention to text near the end of the prompt (**recency**), so a rule placed only at the top of a long prompt can fade. Repeat the key rule (or a short reminder) at the end, close to where the model starts answering. Other helpers: clear sections, delimiters, and putting the question last.
+
+```python
+messages = [
+    {"role": "system", "content": "Rules: answer in JSON. Never give legal advice. ..."},
+    {"role": "user", "content": long_document + "\n\nQuestion: " + q +
+                                "\n\nReminder: answer in JSON and never give legal advice."},
+]
+```
+
+**Why the others are wrong:**
+- **A. Lower max tokens:** cuts the answer short; it does not enforce a rule.
+- **B. `top_p` and temperature together:** Microsoft recommends changing one of them, not both; neither enforces a rule.
+- **C. Add emoji:** no effect on instruction following.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
 
 </details>
@@ -75,8 +100,25 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-e
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Low temperature reduces randomness.
-**Incorrect:** the other options do not fit — incorrect.
+**Correct: A.** **Temperature** controls randomness when choosing the next token: a low value (0 to about 0.3) makes the model pick the most likely tokens, so the same input gives the same (or nearly the same) output, which is what classification needs. A high value gives varied, creative output. Change **either temperature or `top_p`, not both**. Reasoning models may not accept these parameters; check the model page.
+
+```python
+r = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[{"role": "system", "content": "Classify the ticket as billing, outage or other. Reply with one word."},
+              {"role": "user", "content": ticket_text}],
+    temperature=0,
+    max_tokens=5,
+)
+```
+
+Low temperature gives *consistent* output, not necessarily *correct* output; measure with a labeled test set.
+
+**Why the others are wrong:**
+- **B. High temperature:** random labels.
+- **C. Max tokens 1:** a length limit; it can cut a label and does not make output repeatable.
+- **D. Both high:** maximum randomness.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
 
 </details>
@@ -90,8 +132,23 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-e
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Each round is another model call.
-**Incorrect:** the other options do not fit — incorrect.
+**Correct: C.** A **reflection loop** (generate → critique → revise) improves quality, but every round is **another model call**: more tokens, more cost, more latency. Control it: set a **maximum number of rounds** (often 1 to 2), stop when the critique passes a clear criterion, and use reflection only where quality matters more than speed (important documents, code), not for simple chat.
+
+```python
+draft = generate(task)
+for _ in range(2):                       # hard cap on rounds
+    critique = review(draft, rubric)
+    if critique.passed:
+        break
+    draft = revise(draft, critique.feedback)
+```
+
+Cost example: 1 draft + 2 rounds of (critique + revision) = 5 calls instead of 1.
+
+**Why the others are wrong:**
+- **A. Fewer tokens / B. None:** the extra calls add tokens.
+- **D. Less quality:** reflection usually improves quality, which is why it is used.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
 
 </details>

@@ -54,8 +54,21 @@ Based on the [case study](../real-world/multi-agent-workflow-automation.md). The
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Fixed, sensitive, repeatable steps belong in deterministic code.
-**Incorrect:** B, C, D — language and judgment tasks suit agents.
+**Correct: A.** Use an agent where **language and judgment** are needed; use **plain code** where the step is fixed, sensitive and must behave the same every time. Creating an account follows a fixed rule, has side effects, and must never run twice by accident, so write it as a normal function with an **idempotency key**. Free-form questions, personalized emails and messy role descriptions are language tasks and suit agents.
+
+```python
+def create_account(employee_id: str, upn: str) -> str:
+    key = f"create-account:{employee_id}"
+    if (existing := store.get(key)):          # retry or duplicate event: return the first result
+        return existing
+    user = graph.create_user(upn=upn, ...)    # the real side effect
+    store.put(key, user.id)
+    return user.id
+```
+
+**Why the others are wrong:**
+- **B, C, D:** answering questions, drafting text and interpreting messy input are tasks where a model adds value.
+
 Source: https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview
 
 </details>
@@ -69,8 +82,13 @@ Source: https://learn.microsoft.com/en-us/agent-framework/overview/agent-framewo
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The designer and in-portal execution are being retired; YAML definitions can run as hosted agents.
-**Incorrect:** A — retiring; C — loses orchestration; D — unnecessary.
+**Correct: B.** The Foundry visual workflow designer and in-portal execution are being retired (**December 1, 2026**). Plan the migration now: **export the workflow YAML**, then rebuild it in **Microsoft Agent Framework** (code-first) or **Azure Logic Apps** (low-code); YAML definitions can also run as **hosted agents**. Steps: inventory workflows → export YAML → map each node to code or a Logic Apps action → add tests with your golden scenarios → run old and new in parallel → switch → retire.
+
+**Why the others are wrong:**
+- **A. Supported indefinitely:** it is retiring.
+- **C. Prompt agent only:** loses orchestration (branching, approvals, retries).
+- **D. Delete it:** unnecessary and loses the logic.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/workflow
 
 </details>
@@ -84,8 +102,15 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/workflow
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Checkpoints save workflow state at superstep boundaries and can be resumed.
-**Incorrect:** A, C, D — unrelated.
+**Correct: B.** A long process can be killed by a deployment, a crash or scaling. **Checkpointing** saves the workflow state at **superstep boundaries** (after each round of executors finishes) to **durable storage** such as Cosmos DB or a database. After a restart the workflow **resumes from the last checkpoint** instead of starting over, so completed steps (for example "mailbox created") are not repeated. Steps must still be idempotent, because the step that was running at the crash may run again.
+
+Walkthrough: steps = create account → assign license → provision laptop. The process dies during "provision laptop". On restart it loads the checkpoint after "assign license" and continues with the third step only.
+
+**Why the others are wrong:**
+- **A. Higher temperature:** randomness only.
+- **C. Tool search:** helps pick tools from a large set.
+- **D. Group chat:** an orchestration pattern (agents talk in one thread), not persistence.
+
 Source: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints
 
 </details>
@@ -99,8 +124,26 @@ Source: https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Overlapping roles and no stop rule cause loops.
-**Incorrect:** A, C, D — worsen or hide the problem.
+**Correct: B.** Ping-pong loops come from **overlapping roles** (each agent thinks the other should finish) and **no stop rule**. Fix the design: give each agent a narrow role and tool set, define a **termination condition** (who declares "done" and what "done" means), cap the **maximum rounds**, and replace agent steps with plain code where the step is deterministic.
+
+```python
+MAX_ROUNDS = 6
+for round_no in range(MAX_ROUNDS):
+    result = reviewer.run(draft)
+    if result.approved:                 # explicit termination
+        break
+    draft = writer.run(result.feedback)
+else:
+    escalate_to_human(draft)            # budget exhausted: do not loop forever
+```
+
+Also track tokens per outcome so cost growth is visible.
+
+**Why the others are wrong:**
+- **A. Add a fourth agent:** more coordination, more cost.
+- **C. Disable tracing:** hides the problem.
+- **D. Bigger model:** costs more and does not add a stop rule.
+
 Source: case study section 9
 
 </details>
@@ -114,8 +157,14 @@ Source: case study section 9
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Toolboxes centralize credentials, governance and versioning.
-**Incorrect:** B and D — insecure; C — not scalable.
+**Correct: A.** A **toolbox** is a named, versioned set of tools exposed through **one MCP-compatible endpoint**, with authentication configured once. Agents just connect to the toolbox; the tools, credentials, governance and versioning live in one place. When the Teams connection changes, you change it once instead of in 20 agents.
+
+Compare: 20 agents × 3 tools = 60 configurations and 60 places for a credential to leak; with a toolbox it is 1 configuration per tool and 20 simple connections.
+
+**Why the others are wrong:**
+- **B. Hard-coded credentials / D. No authentication:** insecure.
+- **C. One giant agent:** too many tools raise wrong tool choices and tokens, and it removes separation of duties.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/toolbox-overview
 
 </details>
@@ -129,8 +178,27 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/toolbox-
 
 <details><summary>Answer</summary>
 
-**Correct: A.** Indirect injection arrives via third-party data; enforcement and approvals limit damage.
-**Incorrect:** B — insufficient; C and D — increase risk.
+**Correct: A.** The resume is third-party data that reaches the Access agent as input or a tool result: an **indirect injection**. No single control is enough, so layer them:
+1. Treat form text as **untrusted data** (clearly delimited, never mixed into instructions).
+2. **Tool-response guardrail** (indirect attack control) before the agent reads it.
+3. **Limits in code**: the grant tool only offers allowed bundles for the employee's role, whatever the model asks.
+4. **Human approval** for access grants.
+5. **Separate least-privilege identity** per agent so one compromised agent cannot do everything.
+
+```python
+ALLOWED = {"engineer": {"repo-read", "ci-read"}, "hr": {"hris-read"}}
+
+def grant_access(employee_role: str, bundle: str):
+    if bundle not in ALLOWED.get(employee_role, set()):
+        raise PermissionError("Bundle not allowed for role")      # code, not prompt
+    return request_approval(employee_role, bundle)
+```
+
+**Why the others are wrong:**
+- **B. Longer prompts only:** can be overridden by injected text.
+- **C. Remove approvals:** removes the last safety net.
+- **D. One shared identity:** one compromise grants everything.
+
 Source: case study sections 7 and 9
 
 </details>

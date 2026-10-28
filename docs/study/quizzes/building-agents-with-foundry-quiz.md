@@ -54,8 +54,22 @@ Based on the [deep dive](../deep-dives/building-agents-with-foundry.md).
 
 <details><summary>Answer</summary>
 
-**Correct: C.** Runs expire after 10 minutes; use polling.
-**Incorrect:** the other options do not fit — wrong.
+**Correct: C.** A run that is waiting for function output **expires 10 minutes after it was created**, and the 10 minutes counts total elapsed time, not time inside one function. A tool that blocks for a long job will therefore lose the run. Make the tool return quickly with a **status** (for example a job ID and `"status": "running"`); the model tells the user the work started, and your app (or a later tool call such as `check_job`) **polls** for completion separately.
+
+```python
+def start_report(customer_id: str) -> dict:
+    job_id = queue.enqueue(build_report, customer_id)      # returns immediately
+    return {"job_id": job_id, "status": "running"}
+
+def check_report(job_id: str) -> dict:
+    return {"job_id": job_id, "status": queue.status(job_id)}
+```
+
+**Why the others are wrong:**
+- **A. Disable strict:** `strict` only enforces the argument schema; it has no effect on time limits.
+- **B. Block for an hour:** the run expires after 10 minutes.
+- **D. Return secrets:** never do this; tool outputs go to the model and into logs.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-components
 
 </details>
@@ -69,8 +83,15 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** User profile memory is retrieved once at start.
-**Incorrect:** the other options do not fit — not recommended.
+**Correct: B.** **User profile memory** holds stable facts (preferred name, language, dietary needs). It is retrieved **once at the start of a conversation** and injected as context, because those facts rarely change during a chat. Retrieving per token or per turn wastes calls and counts against request limits (preview: 1,000 requests per minute for search). **Chat summary memory** is different: it summarizes what happened in earlier conversations.
+
+Memory is partitioned by `scope`. For per-user isolation set the scope to `{{$userId}}` on the memory search tool so each end user only sees their own memories.
+
+**Why the others are wrong:**
+- **A. Only at the end:** the agent would greet the user without knowing their name.
+- **C. Never:** then memory has no value.
+- **D. Every token:** not recommended; it is excessive and not how retrieval works.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory
 
 </details>
@@ -84,8 +105,22 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The app executes and returns the output.
-**Incorrect:** the other options do not fit — wrong.
+**Correct: B.** A function tool is only a *request*: the model decides it needs `get_order`, and the response contains a `function_call` item with a `call_id` and JSON `arguments`. **Your app** runs the code (and your authorization checks), then sends the result back as a `function_call_output` item. The model then uses it to write the final answer.
+
+```python
+for item in response.output:
+    if item.type == "function_call":
+        result = get_order(**json.loads(item.arguments))
+        outputs.append({"type": "function_call_output",
+                        "call_id": item.call_id, "output": json.dumps(result)})
+final = openai.responses.create(input=outputs, conversation=conversation.id, extra_body=ref)
+```
+
+**Why the others are wrong:**
+- **A. Portal runs it:** the portal can run an agent but does not execute your function.
+- **C. Model executes code:** the model only produces arguments.
+- **D. Search index runs it:** unrelated; search is a hosted tool, not a function runner.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-components
 
 </details>
@@ -99,8 +134,21 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** Agents are versioned definitions.
-**Incorrect:** the other options do not fit — not versioned.
+**Correct: B.** Foundry has three runtime components: **agent** (the definition: model + instructions + tools), **conversation** (durable history), and **response** (one execution). Only the agent is **versioned and reusable**: each change creates a new version you can pin, test and roll back. A response is a single run, a token is a unit of text, and a trace is a telemetry record.
+
+```python
+agent = project.agents.create_version(
+    agent_name="support",
+    definition=PromptAgentDefinition(model="gpt-4.1-mini", instructions="Help with orders."),
+)
+print(agent.name, agent.version)   # a new version each time you call create_version
+```
+
+**Why the others are wrong:**
+- **A. Response:** one step of work, not reusable.
+- **C. Token:** a text unit used for billing and limits.
+- **D. Trace:** observability data, not a definition.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-components
 
 </details>
@@ -114,8 +162,13 @@ Source: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/runtime-
 
 <details><summary>Answer</summary>
 
-**Correct: B.** The model only requests the call; the app executes it and replies with the matching call_id.
-**Incorrect:** A — only hosted tools run server-side; C, D — unrelated.
+**Correct: B.** The loop has five steps: (1) define the function tool, (2) send the user message, (3) the model returns a `function_call`, (4) **your app executes it and returns `function_call_output` with the same `call_id`**, (5) the model returns the final answer. Continue in the same conversation (or with `previous_response_id`) so the model can match your result to its request. If you forget to return the output, the agent returns a function call but never a final answer; if several calls were requested in parallel, return **all** of them.
+
+**Why the others are wrong:**
+- **A. The service runs it:** only *hosted* tools (file search, Azure AI Search, code interpreter, Bing grounding, MCP, OpenAPI) run server-side.
+- **C. Redeploy the agent:** nothing is wrong with the agent.
+- **D. Switch to file search:** that is a different tool and does not execute your function.
+
 Source: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
 
 </details>
