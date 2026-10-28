@@ -272,6 +272,7 @@
       var ok = isCorrect(i);
       card.appendChild(h('p', { class: ok ? 'verdict-ok' : 'verdict-bad' },
         ok ? 'Your answer is correct.' : 'Your answer is not correct.'));
+      card.appendChild(conceptBlock(q));
       card.appendChild(sourcesBlock(q));
     }
 
@@ -360,6 +361,11 @@
   }
 
   /* ---------- results ---------- */
+  function conceptBlock(q) {
+    if (!q.concept) return h('div');
+    return h('div', { class: 'concept' }, '<div class="concept-title">Concept behind this question</div>' + fmt(q.concept));
+  }
+
   function sourcesBlock(q) {
     var html = '';
     if (q.ref && q.ref.length) {
@@ -501,6 +507,7 @@
         '<div class="why">' + tag + ' ' + fmt(o.e) + '</div>'));
       body.appendChild(row);
     });
+    body.appendChild(conceptBlock(q));
     body.appendChild(sourcesBlock(q));
     d.appendChild(body);
     return d;

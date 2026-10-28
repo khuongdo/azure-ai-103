@@ -1,6 +1,6 @@
 ---
 name: ai103-mock-exam
-description: Create or extend full-length interactive mock exams (50 scenario questions, timer, grade-at-the-end mode, explanation for every option) for the Microsoft AI-103 exam in docs/study/practice-tests/. Use this skill whenever the user wants a new practice test, a mock exam, more exam-style questions in the timed format, or to fix, replace or review questions of an existing mock exam, even if they only say "make another practice test" or "add 10 more questions to mock 3".
+description: Create or extend full-length interactive mock exams (50 scenario questions, timer, grade-at-the-end mode, explanation for every option and a concept explanation for every question) for the Microsoft AI-103 exam in docs/study/practice-tests/. Use this skill whenever the user wants a new practice test, a mock exam, more exam-style questions in the timed format, or to fix, replace or review questions of an existing mock exam, even if they only say "make another practice test" or "add 10 more questions to mock 3".
 ---
 
 # ai103-mock-exam
@@ -13,7 +13,7 @@ The questions, options and explanations are written in **English**, because the 
 
 | Path | Role |
 |---|---|
-| `tools/mock-exams/mock-N.txt` | **Source of truth**: questions, options, explanations, links |
+| `tools/mock-exams/mock-N.txt` | **Source of truth**: questions, options, option explanations, concept explanations, links |
 | `tools/mock-exams/build_mock_exams.py` | Parses and validates the sources, shuffles options, writes the pages |
 | `docs/study/practice-tests/mock-exam-engine/engine.js`, `engine.css` | Shared test engine (start screen, exam mode, practice mode, timer, grading, review) |
 | `docs/study/practice-tests/mock-exam-N-view.html` | **Generated** standalone test page. Never edit by hand |
@@ -49,7 +49,7 @@ Default timer 120 minutes. If the study guide weights change, update `DOMAINS` i
 1. **Choose the scope.** For a new test, take the next number (`mock-6.txt`). List which lessons in `docs/study/deep-dives/` each question will cover, and compare with the existing tests so topics are spread and the same scenario is not reused. Read the lessons before writing: every fact in a question must be supported by a deep dive or the Learn page it cites.
 2. **Write `tools/mock-exams/mock-N.txt`** in the format below. Write questions domain by domain so the counts are easy to hit.
 3. **Build and validate**: `python3 tools/mock-exams/build_mock_exams.py` (all tests) or `... mock-N`. The script fails with a list of problems; fix them all. It also prints the positions of the correct options, which should be roughly even across A to D.
-4. **Test the page** in a browser (Playwright is installed): open `docs/study/practice-tests/mock-exam-N-view.html`, start, answer, grade, open the review. Check there are no console errors.
+4. **Test the page** in a browser (Playwright is installed): open `docs/study/practice-tests/mock-exam-N-view.html`, start, answer, grade, open the review. Check there are no console errors, and that the "Concept behind this question" block appears after **Check answer** in practice mode and in the review.
 5. **Register the test** (only for a new one): add `mock-exam-N.md` to `nav:` in `mkdocs.yml` under "Exam preparation > Mock exams", add a row to the table in `docs/study/practice-tests/index.md`, then run `mkdocs build --strict`.
 6. **Report** briefly: the files, counts per domain, number of multiple-answer questions, topics covered, any `[NEEDS VERIFICATION]` decisions, and unresolved questions at the end. Ask before committing or pushing.
 
@@ -70,6 +70,9 @@ client.responses.create(model="...", input="...")
 - A wrong option :: Why it is wrong, in one or two sentences.
 - Another wrong option :: Why it is wrong.
 - A third wrong option :: Why it is wrong.
+CONCEPT: First paragraph of the question-level explanation (the concepts behind the question).
+
+Second paragraph. Blank lines separate paragraphs; the block ends at the SRC: line.
 SRC: https://learn.microsoft.com/en-us/azure/...
 REF: capacity-cost-and-throttling
 
@@ -80,6 +83,7 @@ Q: ... Which TWO actions should you take?
 - Wrong option :: ...
 - Wrong option :: ...
 - Wrong option :: ...
+CONCEPT: ...
 SRC: ...
 REF: ...
 ````
@@ -88,6 +92,7 @@ Rules the script enforces:
 
 - Header is `=== D<1-5> single|multi`. `single` has exactly one `+`. `multi` has two or three `+` and at least two `-`.
 - 4 to 6 options. Every option needs ` :: explanation`.
+- `CONCEPT:` is required for every question, goes after the options and before `SRC:`, and needs at least 90 words (see "Concept explanation" below). It may span many lines and paragraphs; code blocks are not needed.
 - `SRC:` lists `learn.microsoft.com` URLs (comma separated) **that are already cited somewhere in `docs/study/`**. If you need a new link, verify the page on Microsoft Learn, cite it in the matching study note first, then use it.
 - `REF:` lists deep-dive file names (without `.md`) that exist in `docs/study/deep-dives/`. The review screen links to them.
 - Domain counts must match the blueprint. No duplicate question text across all tests.
@@ -96,11 +101,25 @@ Rules the script enforces:
 
 Correct options can be written in any position; the script shuffles them with a fixed seed.
 
+## Concept explanation (one per question)
+
+Option explanations say why each choice is right or wrong. The `CONCEPT:` block teaches the topic itself, for a learner who may not know the terms. Write it **after** the options are final, in plain English, 90 to 250 words, in short paragraphs. Use this shape:
+
+1. **Define the key terms** the question depends on, in everyday words, before using them. Example: what KNN is and what HNSW is, not only that "KNN is the ground truth".
+2. **Explain how the mechanism works** step by step with a small concrete example or numbers (a calculation question should show the arithmetic).
+3. **Relate the ideas**: how the terms in the question fit together, and what the question is really asking. Mention why the nearest wrong idea does not fit, in general terms, without referring to option letters.
+4. **End with a memory aid** (an analogy or a one-line rule) when it helps.
+
+Rules: no option letters (options are shuffled); no `[NEEDS VERIFICATION]`; every fact must be supported by a deep dive or the cited Learn page; do not just repeat the correct option's explanation. The page shows the block as "Concept behind this question" after the option explanations, in practice mode after **Check answer** and in the final review.
+
+Reference example (question about measuring HNSW recall): define KNN (compare the query with every vector, exact but slow), define HNSW (layered graph of neighbors, like highways and local streets, fast but approximate), explain how they relate (KNN is the reference answer, recall = share of KNN neighbors that HNSW also returns), then the memory aid (checking every house in town versus using a map to get near it).
+
 ## How to write good questions
 
 - **Scenario first.** Two to four sentences with concrete constraints (traffic shape, network rule, data residency, latency, cost, compliance). The constraints must decide the answer.
 - **Plausible distractors.** Each wrong option is a real service, setting or practice that fits a different situation. Avoid joke options and "all of the above".
 - **Explain every option.** The correct option says why it fits; each wrong option says what it is actually for or why it fails here. This is where most learning happens.
+- **Add the concept explanation** (`CONCEPT:`) so the learner understands the topic, not only the answer.
 - **Mix the types.** Roughly: decision questions (which service or setting), diagnosis questions (symptom to cause), calculation questions (PTU sizing, RRF, defect rate, RU/s), code questions (what is wrong in a snippet), and "select TWO" questions (3 to 6 per test).
 - **Use exact Microsoft terms** as in the lessons: Foundry resource and project, Responses API, prompt agent and hosted agent, guardrails and controls, Content Understanding analyzers, and so on.
 - **Prefer GA features.** When a question depends on a Preview feature, say "(preview)" in the question or the explanation.
