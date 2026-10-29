@@ -1,0 +1,805 @@
+@id: mock-7
+@title: AI-103 Mock Exam 7
+@short: Mock exam 7
+@description: Full-length mock exam with 50 scenario questions. This test focuses on architecture, operations and calculations: PTU sizing, Cosmos DB throughput, private DNS, recovery, locks and policy, CI/CD, guardrail settings, retrieval tuning, evaluators, image editing requests, speech and translation operations, and indexer design.
+
+=== D1 single
+Q: A company runs a customer copilot on a Provisioned deployment. To save money, an engineer proposes scaling the PTUs up every morning at 8:00 and down every evening at 18:00 with a scheduled job. What is the main risk of this plan?
++ Capacity is not guaranteed when you scale back up, so the deployment may fail to scale at 8:00; use steady provisioned capacity with spillover for bursts instead :: Scaling down releases capacity back to the pool, and there is no promise you can get it back.
+- Scaling PTUs up and down is blocked by Azure Policy by default :: No such default block exists; the risk is capacity, not policy.
+- PTUs lose their quota each time they are scaled down :: Quota is a policy limit and is not consumed by scaling; capacity is the problem.
+- Provisioned deployments cannot be changed after creation :: PTUs can be changed, but doing it daily is not a safe plan.
+CONCEPT: A PTU (provisioned throughput unit) is a normalized slice of model capacity. Foundry reserves it for you and bills it hourly whether or not you send requests. Two ideas must be kept apart. Quota is a free policy limit on how many PTUs you may deploy. Capacity is the real hardware available right now for a model version. Having quota does not guarantee capacity.
+
+When you delete or scale down, capacity returns to a shared pool. If you later scale up, the capacity may not be there, and the operation fails. That is why Learn advises against planning to scale up and down with daily traffic. Continuous hourly billing at high use also usually costs more than a reservation.
+
+Better design: size provisioned capacity for the steady base load, and let spillover send bursts to a standard deployment.
+
+Memory aid: quota is permission to rent; capacity is a car actually on the lot.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/provisioned-throughput, https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/deployment-types
+REF: capacity-cost-and-throttling
+
+=== D1 single
+Q: A provisioned deployment returns HTTP 429 when it is full. The team enables spillover. Which statement describes how spillover works?
++ Overflow requests are redirected to a standard deployment in the same Foundry resource, for all requests or per request with the `x-ms-spillover-deployment` header :: This is the documented behavior for Azure OpenAI models.
+- Overflow requests are sent to any deployment in any subscription of the tenant :: The target is a standard deployment in the same Foundry resource.
+- Spillover doubles the PTUs of the deployment automatically :: It redirects traffic; it does not change PTU capacity.
+- Spillover works for every model, including Llama and DeepSeek deployments from other providers :: Those deployments currently do not support spillover.
+CONCEPT: A provisioned deployment has fixed capacity. When it is full it returns a non-200 status such as 429. The Provisioned Utilization metric (PTUs consumed divided by PTUs deployed) tells you when it is at or above 100%.
+
+Spillover handles the overflow. When enabled, requests that the provisioned deployment cannot take are redirected to a standard (pay-per-token) deployment in the same Foundry resource. You can enable it for all requests or for one request with the `x-ms-spillover-deployment` header, which names the target.
+
+This gives you a predictable base (provisioned, consistent latency) and an elastic top (standard, pay per use). Azure OpenAI models support it. Deployments of DeepSeek and Llama from other providers currently do not.
+
+Spillover is a routing feature; it does not add capacity to the provisioned deployment.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/provisioned-throughput, https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/deployment-types
+REF: capacity-cost-and-throttling
+
+=== D1 single
+Q: You size a Data Zone Provisioned deployment for `gpt-5.2`. Learn lists Input TPM per PTU = 3,400, output-to-input ratio = 8 and a scale increment of 5. Peak load is 600 requests per minute, with an average prompt of 500 tokens and an average response of 50 tokens. Forty percent of input tokens are served from the prompt cache. How many PTUs should you deploy?
++ 125 :: Input TPM 300,000 and output TPM 30,000. Normalized TPM = 300,000 x 0.6 + 8 x 30,000 = 420,000. 420,000 / 3,400 = 123.5, rounded up to the next increment of 5.
+- 160 :: This ignores the cache rate (300,000 + 240,000 = 540,000; 540,000 / 3,400 = 158.8, rounded to 160).
+- 55 :: This counts only the uncached input (180,000 / 3,400 = 52.9) and forgets the weighted output tokens.
+- 124 :: This is the rounded value of 123.5 but not a valid size, because deployments scale in steps of 5.
+CONCEPT: The documented formulas for sizing are:
+
+Input TPM = peak RPM x average prompt size. Output TPM = peak RPM x average response size. Normalized TPM = Input TPM x (1 - cache rate) + output-to-input ratio x Output TPM. PTUs = Normalized TPM / Input TPM per PTU, then round up to the scale increment.
+
+Here: Input TPM = 600 x 500 = 300,000. Output TPM = 600 x 50 = 30,000. Cached input is removed: 300,000 x 0.6 = 180,000. Output counts eight times: 8 x 30,000 = 240,000. Normalized = 420,000. Divide by 3,400 = 123.5. The increment is 5, so the answer is 125.
+
+Notice that output tokens are the larger part (240,000 of 420,000) although there are ten times fewer of them. Newer model families use normalized token accounting where cached tokens consume capacity, so always read the sizing page for the model.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing
+REF: capacity-cost-and-throttling
+
+=== D1 single
+Q: A bank uses the standard agent setup. Three projects use Responses API agents and a fourth project uses only classic (Assistants-style) agents. All projects use the same Azure Cosmos DB account. Each Responses project needs 5 containers and the classic project needs 3 containers, each container with 1,000 RU/s. What total throughput must be provisioned for the agent data?
++ 18,000 RU/s :: 3 projects x 5 containers x 1,000 = 15,000, plus 1 project x 3 containers x 1,000 = 3,000.
+- 12,000 RU/s :: This treats every project as classic (4 x 3 x 1,000).
+- 20,000 RU/s :: This treats every project as Responses (4 x 5 x 1,000).
+- 3,000 RU/s :: This is only the minimum account throughput, not the requirement for these projects.
+CONCEPT: In the standard agent setup, conversations, agent definitions and run state live in your Azure Cosmos DB for NoSQL account. Each project needs 3 to 5 containers of 1,000 RU/s each. Three containers are created at provisioning, and up to two more appear when Responses API agents are used.
+
+The rule gives a simple calculation. A project with Responses API agents needs 5 x 1,000 = 5,000 RU/s. A project with only classic agents needs 3 x 1,000 = 3,000 RU/s. Add them: 3 x 5,000 + 1 x 3,000 = 18,000 RU/s.
+
+Too little throughput causes provisioning failures. The minimum account throughput is 3,000 RU/s, and both provisioned and serverless modes are supported.
+
+Keep the Azure OpenAI resource, the Foundry account and the project in the same region, and give the Foundry account's managed identity the right Cosmos DB data-plane roles.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/use-your-own-resources
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: You create a private endpoint for a Foundry resource and want names such as `myresource.openai.azure.com` and `myresource.services.ai.azure.com` to resolve to the private IP address inside your virtual network. Which set of private DNS zones do you link for the Foundry resource?
++ `privatelink.cognitiveservices.azure.com`, `privatelink.openai.azure.com` and `privatelink.services.ai.azure.com` :: These are the three zones listed for a Foundry resource.
+- Only `privatelink.search.windows.net` :: That zone is for Azure AI Search.
+- Only `privatelink.documents.azure.com` :: That zone is for Azure Cosmos DB for NoSQL.
+- `privatelink.blob.core.windows.net` for all three endpoints :: That zone is for blob storage and does not resolve Foundry names.
+CONCEPT: A private endpoint gives a service a private IP address inside your virtual network. But applications use names, not IP addresses. If the name still resolves to the public IP, traffic does not use the private endpoint. So private networking has two halves: the private endpoint, and DNS that returns the private address.
+
+Each Azure service has its own private DNS zone names. For Foundry these are `privatelink.cognitiveservices.azure.com`, `privatelink.openai.azure.com` and `privatelink.services.ai.azure.com`. For Azure AI Search it is `privatelink.search.windows.net`, for Cosmos DB `privatelink.documents.azure.com`, and for blob storage `privatelink.blob.core.windows.net`.
+
+Link each zone to the virtual network. If you use a custom DNS server, forward those zones to the Azure DNS virtual server `168.63.129.16`.
+
+Test with `nslookup` from a VM inside the network: it must return a private address.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks, https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-overview
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A team moves to a network-secured setup and wants to use the File Search tool with files stored in Blob Storage, and the Code Interpreter tool with file upload. Which statement about tool support in a private setup is correct?
++ Blob Storage files with the File Search tool are not supported, and Code Interpreter works without file upload and download unless a container is pre-created through the SDK :: These are the documented limits in a private setup.
+- All tools work identically in private and public setups :: Learn lists specific limits for private setups.
+- File Search with Blob Storage is the only supported option in private setups :: It is listed as not supported.
+- Bing grounding works in every region in a private setup :: It is limited to the listed regions.
+CONCEPT: Network isolation changes what some tools can do. In the network-secured standard setup, the agent runtime is injected into a delegated subnet, data stores are reached through private endpoints, and traffic stays off the public internet.
+
+Learn lists limits for tools in that setup. Files in Blob Storage used with the File Search tool are not supported. Code Interpreter works without file upload and download unless you pre-create a container through the SDK. Bing grounding is limited to listed regions.
+
+So a design review must check each planned tool against the private-setup limits before committing to the architecture. A tool that works in the playground of a public project may fail in a locked-down one.
+
+Related rules: the Foundry resource must be in the same region as the virtual network, and the agent subnet is dedicated to one Foundry resource.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: After a database incident, a team wants to restore the Cosmos DB account used by the Agent Service. A restore creates a new account with the original name, but the restore fails. Which preparation was missing?
++ A unique, organization-specific account name, with continuous backup enabled before the incident :: A restore fails if the original name is taken, and point-in-time restore is unavailable unless continuous backup was enabled beforehand.
+- A system-assigned managed identity on the Foundry project :: Learn recommends a user-assigned identity, but this does not cause a restore name conflict.
+- A Provisioned deployment for the chat model :: Model capacity has nothing to do with restoring the data store.
+- A larger virtual network address space :: Address space does not affect the name used by a restore.
+CONCEPT: Foundry Agent Service has no built-in backup or point-in-time restore, so recovery depends on settings you configure before an incident. For Azure Cosmos DB: enable continuous backup (retention tiers of 7, 30 or 35 days) with point-in-time restore, which is unavailable unless it was enabled beforehand. Use a unique, organization-specific account name, because a restore creates a new account with the original name and fails if that name is taken. Add read replication to a failover region with service-managed failover.
+
+The same name rule applies to Azure AI Search: use a unique, organization-specific service name. For storage, use GZRS for customer-managed failover. Use a user-assigned managed identity for the project so role assignments survive recreation, and the standard agent setup.
+
+These checks are done in advance, not during the incident.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/how-to/high-availability-resiliency
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A team put delete locks on its Cosmos DB account, Storage account and AI Search service. A few weeks later, an engineer with the Foundry User role deletes all conversation threads through the Agent Service API. Why did the locks not prevent this?
++ Locks protect the Azure resources, not the data inside containers, indexes or individual agents and threads; no built-in role is read-only for these operations :: Operational data can be deleted through the API, so standing delete permissions should not be granted.
+- Delete locks only work on Sundays :: Locks have no schedule.
+- Locks are removed automatically after 30 days :: Locks stay until someone removes them.
+- Foundry User cannot delete anything, so the report must be wrong :: Even built-in roles such as Foundry User can delete operational data through the Agent Service APIs.
+CONCEPT: A delete lock stops someone from deleting an Azure resource, for example the whole Cosmos DB account. It does not stop someone from deleting data inside the resource: documents in containers, entries in an index, or agents and threads removed through the Agent Service APIs.
+
+Learn notes that even built-in roles such as Foundry User can delete operational data through those APIs, and no built-in AI role is read-only for them. So in production you should grant standing delete permissions to no one, use Azure Policy `denyAction` and delete locks on critical resources, keep continuous backup, and define agents as code so they can be recreated.
+
+Locks need Owner to create. They are one layer of several.
+
+Think of a lock as a padlock on the filing cabinet: it does not stop someone who has the key from shredding the papers inside.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/how-to/high-availability-resiliency
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A regulated company uses hosted agents and requires customer-managed keys for all data. Which statement about customer-managed key (CMK) coverage is correct?
++ Hosted agents are only partly covered, because the `$HOME` filesystem is on platform-managed storage that is not encrypted with CMK :: Prompt agents support CMK only with bring-your-own storage, and hosted agents have this gap.
+- Hosted agents are fully covered by CMK once the Foundry resource has a key :: Learn lists the `$HOME` filesystem as not encrypted with CMK.
+- CMK for agents is configured only on the model deployment :: For agents, CMK is configured on the data stores such as Cosmos DB, Storage and AI Search.
+- CMK replaces the need for Key Vault :: Keys are held in Azure Key Vault or Azure Managed HSM.
+CONCEPT: Foundry supports customer-managed keys held in Azure Key Vault or Azure Managed HSM. You create or import a key, give the Foundry resource's managed identity permission to use it (with Azure RBAC on Key Vault this is the Key Vault Crypto User role), and then enable CMK on the resource, either at creation or later.
+
+For agents the details matter. Prompt agents support CMK only with bring-your-own (customer-managed) storage, so you also configure CMK on Cosmos DB, Storage and AI Search. Hosted agents are only partly covered, because the `$HOME` filesystem is on platform-managed storage that is not encrypted with CMK.
+
+If a compliance rule says "all data", the hosted-agent gap must be documented or a different design chosen.
+
+Read the coverage list for the agent type you use before promising full CMK coverage.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/customer-managed-keys
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A security review finds a Foundry project that was created in the portal without private networking, while the approved design requires private endpoints. How do you prevent this in the future?
++ Create resources, projects, agents and connections from infrastructure as code, treat project creation as privileged, and enforce rules with Azure Policy :: Portal-created projects do not inherit network controls, and portal actions can bypass constraints.
+- Ask developers to be careful when using the portal :: A process request is not an enforced control.
+- Disable the network rules so that every project behaves the same :: This removes isolation instead of enforcing it.
+- Give every developer the Owner role so they can fix settings :: Broad rights make unreviewed changes more likely.
+CONCEPT: Governance works best when the setup is repeatable and enforced. Infrastructure as code (IaC) describes resources, projects, agents and connections in files that are reviewed and deployed by a pipeline. Learn gives reasons: portal actions run under a service identity and can bypass constraints, portal-created projects do not inherit network controls, and untracked portal edits cannot be reproduced.
+
+So treat project creation as a privileged action, and combine IaC with Azure Policy. Policy can require private endpoints and network security groups, customer-managed keys and allowed regions, disable local (key) authentication, and restrict deployment types by denying `sku.name` on deployments.
+
+For a locked-down environment, run the deployment pipeline from a self-hosted runner inside the network.
+
+Rule: the portal is for exploring; code and policy are for production.
+SRC: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat, https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+REF: platform-network-and-reliability, cicd-for-foundry-projects
+
+=== D1 single
+Q: An Application Gateway with WAF is the only internet-facing entry point to a chat application. The WAF blocks many legitimate chat messages as false positives because the text looks like attack patterns. What is the recommended handling?
++ Scope WAF exclusions to the chat message field, instead of disabling the rules :: This avoids false positives for that field while keeping protection elsewhere.
+- Turn the WAF off completely :: This removes protection from the only internet-facing entry point.
+- Disable all managed rules for the whole application :: This is too broad and weakens security.
+- Move the chat application to a service endpoint :: A network type change does not solve false positives in a WAF.
+CONCEPT: In the reference architecture, only an Application Gateway with a web application firewall (WAF), plus DDoS protection, faces the internet. Everything behind it uses private endpoints.
+
+A chat input field is free text, so it can legitimately contain words and symbols that look like SQL, scripts or other attack patterns. A WAF may flag them. The recommended approach is to add exclusions that are scoped to the chat message field only. The rules stay active for headers, URLs and other fields, while that one field is excluded from the matching rules.
+
+The wrong answers weaken the whole entry point. Security is a balance: reduce false positives precisely and keep the rest of the rules.
+
+Other parts of the same design: a dedicated agent subnet with a user-defined route to Azure Firewall and FQDN rules for egress control.
+SRC: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
+REF: platform-network-and-reliability
+
+=== D1 single
+Q: A security architect wants to stop a compromised agent from sending data to arbitrary internet addresses. The agent runs in an injected subnet. Which network design implements egress control?
++ A dedicated agent subnet with a user-defined route to Azure Firewall and FQDN allow rules :: Outbound traffic is forced through a firewall that permits only approved destinations.
+- Public network access enabled on every dependency :: This opens more paths, not fewer.
+- A shared subnet used by all workloads in the company :: The agent subnet is dedicated to one Foundry resource and cannot be shared.
+- Removing the network security group from the subnet :: This removes a layer of control.
+CONCEPT: Network isolation has an inbound side and an outbound side. Inbound traffic reaches Foundry through private endpoints with public access disabled. Outbound traffic from the agent runtime uses virtual network injection into a delegated subnet (delegated to `Microsoft.App/environments`).
+
+Egress control limits where the agent may send data. The recommended design is a dedicated agent subnet with a user-defined route (UDR) that sends traffic to Azure Firewall, plus fully qualified domain name (FQDN) rules that allow only approved destinations such as Microsoft Entra endpoints. Network security groups on the subnet need matching outbound rules. Do not perform TLS inspection on agent traffic, because a substituted certificate breaks connections.
+
+This is a defense for the case where the model is tricked: even if the agent tries to send data out, the firewall refuses.
+
+Hosted agents also have network egress controls (Preview) with an allow-list of destinations.
+SRC: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat, https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/virtual-networks
+REF: platform-network-and-reliability, agent-safety-and-identity
+
+=== D1 single
+Q: A GitHub Actions workflow deploys Foundry agents with the Azure Developer CLI. The current version stores a service principal secret as a repository secret and sometimes two runs deploy at the same time. Which two changes follow the recommended pattern?
++ Use GitHub OIDC federated credentials with `azure/login` and add a concurrency group that serializes deployments :: Federation removes the stored secret, and the concurrency group prevents two simultaneous deployments.
+- Keep the secret but rotate it yearly, and let runs overlap :: The secret remains a stored credential, and overlapping runs can conflict.
+- Use the project's API key in the workflow and run deployments in parallel for speed :: Keys bypass role-based access control, and parallel deployments can collide.
+- Store the secret in the agent instructions so it is available at deploy time :: Secrets must never be placed in prompts or instructions.
+CONCEPT: The template workflow for hosted agents runs on a push to `main` and executes `azd provision` and then `azd deploy`. Two details make it safer.
+
+Authentication uses OpenID Connect (OIDC) federation. The workflow gets a short-lived token from Microsoft Entra ID through a federated credential, so no secret is stored in GitHub. In the workflow this needs `permissions: id-token: write` and the `azure/login` action.
+
+A concurrency group gives each deployment a queue. Only one run of the group executes at a time, so two pushes in quick succession do not provision or deploy at once.
+
+In a private Foundry, the runner must be able to reach the network, so use a self-hosted runner inside the virtual network.
+
+Use least-privilege roles for the pipeline identity, and keep infrastructure code and agent definitions in source control.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/set-up-ci-cd-cli, https://learn.microsoft.com/en-us/azure/foundry/agents/quickstarts/set-up-cicd-hosted-agent
+REF: cicd-for-foundry-projects
+
+=== D1 single
+Q: A team's pipeline runs the full evaluation suite of 2,000 test cases with an LLM judge on every commit to every pull request. Costs rise and the pipeline slows down. Which change follows the guidance?
++ Run a small fast set (about a dozen cases) on every pull request and the full set only for release candidates :: This controls cost and still gates the release.
+- Remove evaluation from the pipeline entirely :: Evaluation is the gate that catches regressions.
+- Run the full suite on every commit but use a smaller judge model with no testing :: The judge model must be validated; the cost problem is the frequency.
+- Replace the dataset with five easy cases :: A dataset that is too easy hides regressions.
+CONCEPT: AI apps need evaluation as a gate in the pipeline, because quality can change without any code change. But evaluation costs money (model calls for the system and for the judge) and takes time.
+
+Learn advises not running the evaluation Action on every commit, to control cost. A balanced design has two levels. A small, fast set of about a dozen cases runs on every pull request to catch obvious breaks. The full dataset runs on release candidates, before promotion to production.
+
+Dataset hygiene helps both: version the dataset with the code, and add every production incident as a new case. A dataset that is too small or too easy produces a gate that always passes.
+
+A gate should combine an absolute floor (for example safety defect rate at or below 1%) and a rule relative to the baseline.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/how-to/evaluation-github-action, https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/azure-developer-cli-evaluation
+REF: cicd-for-foundry-projects
+
+=== D2 single
+Q: A team improves a prompt by editing five things at once: wording, examples, the output format, the temperature and the model. The score rises, and nobody knows why. Which approach does the prompt-improvement loop recommend?
++ Write a test set first, record a baseline, change one thing at a time, and keep a change only if the metric improves :: Single changes show cause and effect, and the baseline gives a reference.
+- Keep all five changes because the score went up :: You cannot tell which change helped or hurt, and some may fail on other inputs.
+- Tune only on the examples you can see in the prompt :: This overfits to the visible examples.
+- Skip refusals in the test set to keep the score high :: A test for refusals is part of a good set.
+CONCEPT: Prompt engineering is experimental work, so it needs a method. The loop has six steps. First, write the test: 30 to 50 real inputs with expected outcomes, including a few that should be refused. Second, run the simple prompt and record the baseline. Third, change one thing, such as adding an "out", adding two examples or adding a cue. Fourth, re-run and compare, keeping the change only if the metric improves. Fifth, review failures by hand, since each failure suggests the next change. Sixth, lock the prompt in version control together with its test results.
+
+If you change five things together, you cannot tell which one helped, and one may have hidden a regression. Tuning on the visible examples only also overfits.
+
+Common mistakes: no test for refusals, several changes at once, and judging by a few hand-picked examples.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: A retrieval team compares chunking strategies for two content types: highly structured product specification tables and long narrative customer stories. Which guidance on overlap fits?
++ Use less overlap for highly structured data and more overlap for conversational or narrative text :: Narrative text depends on context across boundaries, while structured data usually stands alone.
+- Use the same maximum overlap for every content type :: The guidance differs by content type.
+- Use more overlap for structured data and none for narrative text :: This reverses the guidance.
+- Never use overlap, because it only creates duplicates :: Overlap prevents an answer from being cut in half at a boundary, at the cost of extra storage and embedding calls.
+CONCEPT: Chunking cuts text into pieces to stay under model token limits, to avoid one vector blurring many topics, and to return a focused passage to the model. The documented starting point is 512 tokens with 25% overlap (128 tokens).
+
+Overlap is a trade-off. It repeats part of the previous chunk so that an idea that crosses a boundary is still intact in one chunk. This costs extra storage and embedding calls: with a 10,000-token document, 512-token chunks and 128 overlap, you get about 26 chunks instead of about 20.
+
+The decision guide: larger chunks with overlap for questions about specific facts; less overlap for highly structured data; more overlap for conversational or narrative text; chunk by section for documents with headings; use semantic chunking with Content Understanding Markdown when you need meaning-preserving chunks across pages.
+
+Always measure with retrieval evaluators on your own questions.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: A team asks when the semantic ranker is charged. They run many diagnostic queries with `search=*` and many production queries with `queryType=semantic` and a non-empty search string. Which queries generate semantic ranker charges?
++ Only queries with `queryType=semantic` and a non-empty search string :: The semantic ranker is a billed feature charged for those queries; an empty search is not charged.
+- All queries, including `search=*` :: An empty search is not charged.
+- Only queries that return captions :: Charging depends on the query type and search string, not on captions.
+- No queries, because the semantic ranker is free in every plan :: It is billed, with a monthly allowance on the free plan.
+CONCEPT: The semantic ranker is a second-stage reranker. It takes the top 50 results of BM25 or Reciprocal Rank Fusion, builds a summary string of up to 2,048 tokens for each from the fields of the semantic configuration, and scores each from 0 to 4 in `@search.rerankerScore`. It can also return captions and answers, which are always text copied from your index.
+
+It is a billed feature. Charges apply when `queryType=semantic` and the search string is not empty. An empty search such as `search=*` is not charged. The free plan has a monthly allowance.
+
+Because it only reorders what retrieval already found, it cannot rescue a document that is not in the first 50. Field order in the semantic configuration matters, since long text is trimmed. It works best on prose.
+
+Do not set very fine thresholds on the reranker score: the distribution can shift with model updates.
+SRC: https://learn.microsoft.com/en-us/azure/search/semantic-search-overview
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: A vector field is indexed with HNSW. For one compliance audit the team wants exact nearest neighbors for a single query, without rebuilding the index. What can they do?
++ Set `exhaustive` to true on that vector query :: A field indexed for HNSW can still be queried exhaustively.
+- Rebuild the field as HNSW with a lower `m` :: This is an indexing parameter that does not make search exact.
+- Change the similarity metric to Euclidean :: The metric changes how distance is measured, not whether the search is exact.
+- Lower `efConstruction` to 100 :: That lowers the build-time quality of the graph, which is the opposite of the goal.
+CONCEPT: Vector search finds the nearest neighbors of a query vector. HNSW builds a layered graph at indexing time and walks it at query time, so it is fast but approximate. Exhaustive KNN scans every vector, so it is exact but slower.
+
+HNSW has tuning parameters. `m` is how many neighbors each node links to. `efConstruction` is how many candidates are considered while building the graph (default 400, range 100 to 1,000). `efSearch` is the size of the candidate queue at query time. Higher values improve recall at a cost in time.
+
+A field indexed for HNSW can still be queried exhaustively with `"exhaustive": true` on the vector query. The opposite is not possible: a field indexed as `exhaustiveKnn` cannot use HNSW.
+
+This gives you a fast default and an exact option for audits or for building a ground-truth set to measure HNSW recall.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-ranking, https://learn.microsoft.com/en-us/azure/search/vector-search-overview
+REF: rag-retrieval-and-grounding, azure-ai-search-configuration
+
+=== D2 single
+Q: A developer filters pure vector results with `@search.score >= 0.2` using the cosine metric, expecting to remove poor matches. Almost nothing is removed. What explains this?
++ For cosine the vector score is 1 / (1 + cosine_distance), which ranges from 0.333 to 1.0, so a threshold of 0.2 never filters anything :: The score always decreases as similarity gets worse but never goes below 0.333.
+- Cosine scores range from -1 to 1 and 0.2 is always high :: That is the raw cosine similarity, not the reported search score.
+- The semantic ranker already removed all poor matches :: The ranker is not mentioned and cannot change this range.
+- The index must be rebuilt as exhaustive KNN :: The algorithm does not change the score formula.
+CONCEPT: Search scores are for ordering, and each retrieval method has its own scale. For a vector query with the cosine metric, Azure AI Search reports `@search.score = 1 / (1 + cosine_distance)`. The cosine distance ranges from 0 to 2, so the score ranges from 0.333 to 1.0 and always decreases as similarity gets worse.
+
+A threshold must be chosen inside this range. A value of 0.2 is below the minimum possible score, so nothing is cut.
+
+Scores from different methods cannot be added: BM25, vector and reranker scores are on different scales. Hybrid search merges ranked lists with Reciprocal Rank Fusion using ranks only, and hybrid scores are small numbers that are meaningful only for ordering.
+
+Use cosine for Azure OpenAI embeddings. Calibrate thresholds on real queries, and avoid very fine thresholds on the semantic reranker score.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-ranking, https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking
+REF: rag-retrieval-and-grounding
+
+=== D2 single
+Q: A team builds integrated vectorization and uses a custom skill, behind a web API, to create embeddings during indexing. Which vectorizer must the vector profile use to embed query text at search time?
++ A custom Web API vectorizer that calls the same embedding model as the skill :: The vectorizer type should match the embedding skill, and both must use the same model.
+- An Azure OpenAI vectorizer with a different embedding model :: A different model makes query and index vectors incompatible.
+- An Azure Vision vectorizer :: That one pairs with the Azure Vision multimodal embedding skill.
+- No vectorizer, because query vectors are created by the semantic ranker :: The ranker does not create vectors.
+CONCEPT: Integrated vectorization adds vector encoding at indexing time and at query time with no separate pipeline. At indexing, a skillset chunks the text and an embedding skill creates the vectors. At query time, a vectorizer defined in the index and assigned to the vector field through a vector profile turns the query text into a vector.
+
+The two must use the same embedding model. The pairs are: Azure OpenAI Embedding skill with the Azure OpenAI vectorizer; a custom skill with a Custom Web API vectorizer; the Azure Vision multimodal skill (preview) with the Azure Vision vectorizer; and an Azure Machine Learning skill from the catalog with the Foundry model catalog vectorizer (preview).
+
+If the two sides differ, queries and documents live in different vector spaces, and retrieval quality collapses.
+
+A complete vector field needs the `vectorSearch` profile, the field's `vectorSearchProfile` and the right `dimensions`.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization, https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-create-index
+REF: azure-ai-search-configuration
+
+=== D2 multi
+Q: An agent has a function tool `get_order_status(order_id)`. Security reviews the code that runs when the model returns a `function_call`. Which TWO practices follow the guidance?
++ Parse and validate the arguments before use, because the model's arguments are untrusted input :: A model can produce unexpected values, and an attacker can influence them through content.
++ Run the function with a least-privilege identity and require explicit confirmation for actions that change data :: This limits damage if the arguments or the model's decision are wrong.
+- Pass the raw argument string directly into a database query for speed :: This invites injection and invalid values.
+- Return the full database row, including internal secrets, so the model has more context :: Tool output must not contain secrets; return only what the model needs.
+- Skip returning `function_call_output` and let the agent guess the result :: The app must return the output with the same `call_id`.
+CONCEPT: A function tool is only a request: the model returns a `function_call` item with a name, JSON `arguments` and a `call_id`. Your application executes the function and returns a `function_call_output` with the same `call_id`. Because your code does the work, your code also owns the safety.
+
+Learn's guidance: treat arguments and outputs as untrusted input and validate them before use; do not put secrets in tool output; use least privilege for the identity that your code uses; avoid side effects unless intended; and require explicit confirmation for actions that change data. In the Agent Framework, approval modes such as `always_require` support human-in-the-loop for production.
+
+Why untrusted: the model decides the arguments, and an attacker can influence the model through documents or messages.
+
+Runs also expire 10 minutes after creation, so slow work should return a status and be polled.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
+REF: building-agents-with-foundry, agent-safety-and-identity
+
+=== D2 single
+Q: A process needs several agents in a declared order, with a human approval step before the final answer. The team prefers declarative orchestration rather than writing the control logic. Which Foundry feature fits?
++ A workflow, which orchestrates several agents in patterns such as sequential, group chat and human-in-the-loop :: Workflows are declarative orchestration in the new Foundry Agent Service.
+- The classic Connected Agents tool :: It is not available in the new Foundry Agent Service.
+- A single prompt agent with a longer instruction :: One agent cannot declare a multi-agent order with approval steps.
+- An embedding model deployment :: Embeddings represent text as vectors and do not orchestrate agents.
+CONCEPT: Multi-agent solutions need a way to pass work between agents and keep control. In the new Foundry Agent Service the replacements for the classic Connected Agents tool are the A2A tool and workflows.
+
+The A2A tool lets a Foundry agent call any A2A-compatible endpoint, including another Foundry agent exposed as one. Workflows are declarative orchestration of several agents: sequential, group chat and human-in-the-loop. A workflow is the better match when the order and the approval step are part of the design.
+
+In hosted agents written with the Microsoft Agent Framework you can also expose one agent as a function tool of another, in process, and long-running workflows can resume from checkpoints.
+
+Practice material may still call the pattern "connected agents". Choose the option that matches the product the question names.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/workflow, https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: A developer edits an agent in the portal playground and tests it for an hour, but never saves it. The team then tries to view the conversation history, monitor the agent and run a full evaluation, and cannot. What is the reason?
++ Unsaved changes are temporary; saving creates an immutable version (`name:version`), which is needed for history, monitoring and full evaluation :: Without a saved version the platform has nothing stable to attach history and evaluations to.
+- The playground disables all features for one hour :: There is no such behavior.
+- The agent name must first be changed to include a version number :: A saved agent's name cannot change; the version is created by saving.
+- Evaluations only work on hosted agents :: Evaluations work for prompt agents as well.
+CONCEPT: The agent lifecycle in Foundry has nine steps: choose the type, create and test, add tools and data, save versions, debug with tracing, evaluate, optimize (Preview, hosted agents), publish, and monitor and iterate.
+
+Saving is the step that makes the rest possible. Every save creates a new, immutable version identified as `<agent_name>:<version>`. You can compare setup, chat output and YAML between versions and send requests to a specific version, which makes rollout and rollback controlled. Without saving you cannot see conversation history, monitor performance or run full evaluations. A saved agent's name cannot change.
+
+A tool that needs authentication must also be configured successfully before you can save, so a half-configured tool does not fail later in production.
+
+The order matters: trace before evaluate, evaluate before publish, and monitor after publish.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle
+REF: observability-and-agent-lifecycle
+
+=== D2 single
+Q: In a trace review, a booking agent calls the right tool, but the `check_in` argument is written as "next Friday" instead of an ISO date, which the API rejects. Which evaluator targets exactly this problem?
++ Tool Input Accuracy :: It checks that every parameter is correct: grounded, right type and format, required fields present, no extras and a sensible value.
+- Tool Selection :: It checks whether the right tools were chosen, which was already correct here.
+- Customer Satisfaction :: It rates the overall user experience, not argument formats.
+- Task Navigation Efficiency :: It compares the sequence of tool steps with an expected sequence and needs ground truth.
+CONCEPT: Process evaluators look at each step of an agent run. Tool Selection asks whether the agent chose the needed tools without unnecessary ones. Tool Call Accuracy asks whether the right tools were used with the right parameters and no redundancy. Tool Input Accuracy zooms in on parameters: grounded in the conversation, correct type and format, required fields present, no extras and sensible values. Tool Output Utilization asks whether the agent used the result correctly. Tool Call Success asks whether the call technically succeeded.
+
+In the scenario the tool choice was right, but one argument had the wrong format, which is exactly what Tool Input Accuracy examines.
+
+The fix in the agent is usually a clearer schema and description with an example of the format, plus `strict` validation.
+
+Pick the narrowest evaluator to locate the cause; composite evaluators tell you that something failed, components tell you what.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
+REF: observability-and-agent-lifecycle
+
+=== D2 single
+Q: A team evaluates an agent whose main tool is Azure AI Search and wants to use `tool_call_accuracy` and `groundedness` in its evaluation. What does Learn advise?
++ Avoid these evaluators for that tool because support is limited, and use evaluators that fully support the tool types such as File Search, function tools and MCP :: Agent evaluators fully support File Search, function tools, MCP and knowledge-based MCP.
+- Use them freely, because all evaluators support all tools :: Learn lists limited support for several tool types.
+- Replace the Azure AI Search tool with Code Interpreter :: Code Interpreter is also on the limited-support list.
+- Disable evaluation until the tool is deprecated :: Evaluation should continue with suitable evaluators.
+CONCEPT: Evaluators are not equally supported for every tool. Agent evaluators fully support File Search, function tools, MCP and knowledge-based MCP. For Azure AI Search, Bing grounding, SharePoint, Code Interpreter, Fabric Data Agent and Web Search, Learn advises avoiding `tool_call_accuracy`, Tool Input Accuracy, Tool Output Utilization, Tool Call Success and `groundedness`, because support is limited.
+
+This does not mean you cannot evaluate those agents. You can use system-level evaluators such as Task Completion, Task Adherence and Intent Resolution, safety evaluators, and custom evaluators for domain rules, and review traces for the process.
+
+Why this is exam-relevant: a low or odd score may come from limited support rather than from a bad agent. Check the support table before trusting a metric.
+
+Also remember that most evaluators are AI-assisted and use a judge model deployment.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/agent-evaluators
+REF: observability-and-agent-lifecycle
+
+=== D2 single
+Q: A finance team notices an unexpected monthly charge related to evaluations. Developers have been chatting with agents in the agent playground. What is the likely cause and fix?
++ Evaluations in the agent playground are on by default and billed by consumption; unselect the evaluators to turn them off :: This is documented behavior for playground evaluations.
+- Tracing causes a per-span fee, so tracing must be removed :: Telemetry costs depend on Application Insights volume, and evaluations are the cause here.
+- Guardrails charge per blocked request :: This is not the documented cause.
+- Agent versions are billed monthly :: Versions are not billed that way.
+CONCEPT: Evaluation uses model calls, so it costs money. Many evaluators are AI-assisted, which means a judge model is called for every scored item. In the agent playground, evaluations are on by default and billed by consumption, so casual testing can create a steady cost without anyone noticing.
+
+To stop it, unselect the evaluators in the playground. For planned evaluations, control cost with a small fast set for pull requests and the full set for release candidates, and avoid evaluating on every commit.
+
+Cost control is part of the "Manage" domain: set budgets, watch token and evaluation consumption, restrict playground use in production, and use pre-production environments for experiments.
+
+Also remember that telemetry costs depend on Application Insights volume and retention, which follow your Application Insights configuration.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability, https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat
+REF: observability-and-agent-lifecycle, capacity-cost-and-throttling
+
+=== D2 single
+Q: A medical-education app blocks legitimate anatomy descriptions because the Violence control is too strict, but the team must keep strict settings for hate content. How should the guardrail thresholds be set?
++ Adjust the threshold by category: relax Violence (for example to Medium or High) and keep Hate at a strict level, then re-test :: Thresholds are set per category, and each change is tested on real and adversarial prompts.
+- Raise every category to High at once :: This weakens protection for categories that should stay strict.
+- Turn all categories Off :: Off is only for customers approved for modified guardrails.
+- Remove the guardrail and rely on the model's training :: This removes the runtime protection.
+CONCEPT: A guardrail control combines a risk, an intervention point and an action. For the four harm categories (hate, sexual, self-harm and violence) you choose a severity threshold. Low flags Low severity and above, which is the strictest. Medium flags from medium up. High flags only the most severe content, which is the most permissive. Off is only for customers approved for modified guardrails.
+
+Choosing a threshold is an experiment: start from the audience, run real and adversarial prompts at the default, count false blocks and misses, adjust by category rather than globally, and re-test after every change. A medical app may need more tolerance for violence-related words than for hate.
+
+Annotate-only mode is useful to tune: `detected: true` with `filtered: false` means "seen but allowed", so you can review false positives before turning blocking on.
+
+Content at the safe level is annotated but never filtered.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview, https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories
+REF: responsible-ai-governance, agent-safety-and-identity
+
+=== D2 single
+Q: A latency budget allows about 250 ms of extra overhead for safety checks. The team plans guardrail controls at the user input point and the output point of a model deployment. Using the documented per-point overhead, what is a reasonable expectation?
++ About 100 to 200 ms in total, since each intervention point adds roughly 50 to 100 ms :: Two points at 50 to 100 ms each fit within the 250 ms budget.
+- About 5 ms in total, because guardrails run in parallel for free :: The documented overhead is much higher.
+- About 2 seconds in total, because each point calls a large model :: This is far above the documented range.
+- No overhead, because the content filter is part of the network :: Each intervention point adds latency.
+CONCEPT: Guardrails can be attached at four intervention points: user input, tool call, tool response and output. Each point adds latency, roughly 50 to 100 ms per point, depending on content length and the number of controls.
+
+For a model deployment with controls at input and output, the overhead is about 2 x 50 = 100 ms at best and 2 x 100 = 200 ms at worst, so 100 to 200 ms. That fits inside a 250 ms budget. For an agent that also scans every tool call and tool response, the number of scanned points grows with the number of tool calls, and the overhead grows too.
+
+This is a design trade-off: more intervention points give more protection but add latency, so apply the points that match the real attack paths.
+
+Tool call and tool response controls are Preview, apply to agents, and only for tools that support moderation.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points, https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview
+REF: agent-safety-and-identity
+
+=== D2 multi
+Q: A team evaluates Spotlighting (Preview) to reduce the effect of hidden instructions in third-party documents. Which TWO statements are correct?
++ It marks third-party documents as lower trust by base64-encoding them, which increases the token count :: Encoding makes the model less likely to treat the text as instructions, at the cost of more tokens.
++ It is off by default, available through Chat Completions, and not available for agents :: These are the documented limits.
+- It is enabled automatically for every agent in Foundry Agent Service :: It is not available for agents.
+- It removes the need for any other protection against injection :: It is one layer, and other controls remain needed.
+- It adds no tokens, because base64 text is shorter than the original :: Base64 increases length, so more tokens are used and the input limit may be exceeded.
+CONCEPT: Indirect (document) attacks hide instructions in content the model reads. Prompt Shields detect such attacks. Spotlighting (Preview) is a different, complementary technique: it transforms third-party documents so the model recognizes them as data of lower trust. The transformation is base64 encoding.
+
+Costs and limits: there is no direct fee, but base64 increases the token count, so cost rises and the input may exceed the limit. It is available only through Chat Completions, it is off by default, and it is not available for agents. The model may also mention that content is "base64 encoded" in its answer.
+
+It is not a replacement for the other layers: structure the prompt, scan with Prompt Shields, limit tool permissions and keep humans in the loop for sensitive actions.
+
+Standalone Prompt Shields API: it takes a `userPrompt` and up to five `documents` and returns `attackDetected` for each.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/content-filter-prompt-shields
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: An application wants to check a user's chat message and four retrieved documents for attacks in one call to the standalone Azure AI Content Safety Prompt Shields API before building the prompt. How should the request be shaped?
++ Send the user's text as `userPrompt` and the four retrieved items in `documents` (up to five), and read `attackDetected` for each :: The API takes one user prompt and up to five documents and reports each result separately.
+- Send everything concatenated in a single `userPrompt` and read one flag :: This loses the per-document result and mixes user and third-party content.
+- Send five separate API calls with no `documents` field :: The API is designed to accept the documents in one call.
+- Send the documents only, because the user prompt cannot be checked :: The user prompt is checked as a separate field.
+CONCEPT: Prompt Shields protects against two attack families. A user prompt attack comes from the user: change system rules, embed a fake conversation, role-play as a persona without limits, or hide the request with encoding tricks. A document attack comes from a third party through content the model reads, and its goals include manipulated content, access to system infrastructure, information gathering, availability attacks, fraud and malware.
+
+The standalone API in Azure AI Content Safety checks both in one call. You pass the user's text as `userPrompt` and up to five `documents`, and the response includes an `attackDetected` result for each. Keeping them separate is useful: you can tell whether the user or a document is the source.
+
+In Foundry guardrails the same protections are applied at intervention points. User prompt attacks are scanned at user input; document attacks at user input and at the tool response.
+
+For troubleshooting, check the guardrail is assigned, the point matches where the attack enters, and read `detected` versus `filtered`.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/content-filter-prompt-shields, https://learn.microsoft.com/en-us/azure/ai-services/content-safety/overview
+REF: agent-safety-and-identity
+
+=== D3 single
+Q: A developer calls the image edit endpoint with a JSON body containing the image as a base64 string and a text prompt. The request is rejected as malformed. What is the correct way to send the request?
++ Send a multipart/form-data request with the image as `image[]`, an optional `mask` and the `prompt` :: The edit endpoint uses multipart/form-data, not JSON.
+- Keep JSON but add `Content-Type: image/png` :: The body format is the problem, and a different header does not fix it.
+- Use `response_format="url"` in the JSON :: The gpt-image models do not support `response_format`, and it does not change the body format.
+- Send the mask only, since the prompt is optional :: The prompt describes what the edited area should become.
+CONCEPT: Image generation and image editing are two operations. Generation takes a JSON body with a prompt and creates a new picture. Editing takes existing images, so it uses multipart/form-data, where files are parts of the request.
+
+The edit request fields are `image[]` (up to 16 input images, each under 50 MB, PNG or JPG), `mask` (a PNG with the same dimensions as the input, where fully transparent pixels mark the areas to edit), `prompt`, `input_fidelity` and options like `size`, `n` and `quality`.
+
+With raw REST, you must not force `Content-Type: application/json`; let the HTTP library set the multipart boundary. With an SDK the library handles it.
+
+The response returns base64 in `data[i].b64_json`. After the call, compare the unmasked area with the original and run content safety on the result.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 single
+Q: A quality team uploads a "before" and an "after" photo of a repaired machine and wants a vision-capable chat model to describe what changed. How should the request be built?
++ Put both images as separate `image_url` content parts in one user message, together with the question :: A message can contain several images, which lets the model compare them.
+- Merge the two photos into one text description first :: This loses the visual evidence.
+- Send two separate requests and ask the model to remember the first :: Separate requests do not share the images unless the conversation carries them.
+- Use an embedding model, which returns a text comparison :: Embeddings return vectors, not descriptions.
+CONCEPT: A vision-capable chat model accepts images as part of a message. Content is a list of parts: text parts and `image_url` parts. A part can use a public URL, a base64 data URL, or a Blob SAS URL. For a private blob, enable managed identity and grant a blob read role.
+
+Because content is a list, one message can hold several images. This supports captions for multiple images and comparison questions such as "what changed between these two photos?". Instruct the model to describe only what is visible and to say when something is not visible, to limit invented details.
+
+Treat text inside an image as untrusted input: a screenshot with "ignore your rules" is an indirect prompt injection.
+
+Set `max_output_tokens` appropriately and check the answer against the images for risky cases.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/gpt-with-vision
+REF: multimodal-understanding
+
+=== D3 single
+Q: A creative team will generate about 2,000 draft images before choosing a few finals. The budget is limited, and quality and size drive cost. Which approach follows the cost guidance?
++ Generate drafts with `low` or `medium` quality and render only the approved finals at `high`, and count cost per approved asset :: Quality and size drive cost, and retries and rejected drafts count.
+- Use the highest quality for every draft to avoid regenerating :: This multiplies the cost for images that will be thrown away.
+- Count only the cost of the final images :: Rejected drafts and retries are part of the real cost.
+- Fan out 2,000 parallel requests to finish faster :: The default quota is about 5 images per minute per deployment, so this would be throttled.
+CONCEPT: Image generation cost depends on quality and size, and not every generated image is used. A realistic cost model counts the cost per approved asset, including retries and rejected drafts.
+
+Practical rules: use `low` or `medium` quality for drafts and `high` for finals; queue requests and back off on 429 instead of fanning out; store prompts, parameters and model versions; keep provenance on finals; alert on quota errors and filter blocks.
+
+Quota matters for planning. The default is about 5 images per minute per deployment for the gpt-image models, so 2,000 drafts would take about 400 minutes on one deployment. Options are to spread across deployments, request more quota, or run off-hours queues.
+
+Quality values depend on the model: GPT-Image-2 supports low, medium and high, while the Sunburst and Flare models also add xhigh and max.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 single
+Q: A developer requests images with `output_format="webp"` to reduce size. The request is rejected. Which formats and settings are supported for gpt-image output?
++ `PNG` (default) or `JPEG`, with `output_compression` from 0 to 100 for JPEG :: WEBP is not supported; compression applies to JPEG only.
+- `WEBP` with `output_compression` from 0 to 100 :: WEBP is not supported.
+- `GIF` for animated drafts :: GIF is not a supported output format.
+- Only `PNG`, with no compression setting at all :: JPEG is supported and has a compression setting.
+CONCEPT: The image generation request has several output controls. `output_format` is `PNG` (default) or `JPEG`; WEBP is not supported. `output_compression` is an integer from 0 to 100 (default 100) and applies to JPEG only. `background` can be `auto` or `transparent`, and transparency needs PNG. `n` is the number of images, from 1 to 10. `size` for the gpt-image-1 family is 1024x1024, 1024x1536 or 1536x1024, while GPT-Image-2 and the Sunburst and Flare models accept custom sizes within documented rules.
+
+The response always returns base64 in `data[i].b64_json`; the gpt-image models do not support `response_format`.
+
+If a team needs WEBP, generate PNG or JPEG and convert the file afterward in their own pipeline.
+
+When a request fails with `InvalidPayload`, check the `prompt`, `size` and `n` fields first.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 single
+Q: A media company processes 50,000 long videos with a Content Understanding video analyzer and wants lower cost. Their analysis needs only one description per whole video, not scene-level records. Which setting reduces cost?
++ Set `enableSegment` to `false` so the whole video is treated as one unit, since segmentation uses tokens :: Segmentation adds cost, and the requirement does not need it.
+- Set `enableSegment` to `true` with ten content categories :: Video supports only one content category, and segmentation adds cost.
+- Switch to a document analyzer for the videos :: Document analyzers do not process video.
+- Disable the transcript so that audio is skipped, and also segment the video :: This does not remove the cost of segmentation.
+CONCEPT: Content Understanding processes video in two stages. Stage 1 is content extraction: transcript with speaker labels, key frames and shot detection. Stage 2 is field extraction and segmentation. With `enableSegment: true` and a natural-language category, the analyzer splits the video into logical segments. With `enableSegment: false`, the whole video is one unit.
+
+Segmentation uses tokens, so it costs money. Use it when users need to jump to a moment, as in a searchable library with `prebuilt-videoSearch`, which produces per-segment records. Skip it when a single description per video is enough.
+
+For video only one content category is supported. Video also has limits: about one frame per second is sampled and resized to 512x512, and only speech is transcribed.
+
+Version the analyzer, and batch the backfill if the schema changes, because reprocessing a whole library is expensive.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview, https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference
+REF: multimodal-understanding
+
+=== D3 single
+Q: A company wants to attribute image generation requests to individual end users for abuse investigations, without sending personal data. Which request field can carry a per-user identifier?
++ `user`, which accepts any string for tracking :: It is the documented field for tracking, and an opaque identifier avoids personal data.
+- `n`, which sets the number of images :: It is a count, not an identifier.
+- `background`, which controls transparency :: It is a rendering option.
+- `output_compression`, which sets JPEG quality :: It controls file size.
+CONCEPT: Azure applies input and output moderation and abuse monitoring to image generation models. To help with investigation and operations, the request has a `user` field that accepts any string for tracking.
+
+Use an opaque identifier, such as a hashed internal user ID, so that your logs and the service can group requests by end user without exposing names or emails. Combine it with your own logging: store the prompt, the parameters, the model version and the result of safety checks with the asset.
+
+Other request fields have different jobs: `prompt` is the description, `n` is the number of images (1 to 10), `size` sets dimensions, `quality` sets the level of detail, `output_format` selects PNG or JPEG and `background` can be transparent.
+
+Also keep alerts on quota errors and on `contentFilter` blocks.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D3 multi
+Q: A design tool streams progressive previews while a gpt-image deployment renders a large image. Which TWO statements about streaming are correct?
++ Set `stream` to true and `partial_images` to a value from 0 to 3 :: These are the documented controls for partial results.
++ Events of type `image_generation.partial_image` carry `partial_image_index` and `b64_json` :: The UI can display each preview as it arrives.
+- Set `partial_images` to 8 to receive eight previews :: The allowed range is 0 to 3.
+- Partial results are returned as hosted URLs only :: Results are base64 in `b64_json`.
+- Streaming removes the need for content safety checks on the final image :: The final output still needs filtering.
+CONCEPT: Image generation can take a while. With streaming, the service sends partial results so the user sees progress instead of a blank wait. You turn it on with `stream: true` and choose how many previews with `partial_images`, an integer from 0 to 3.
+
+Each preview arrives as an event of type `image_generation.partial_image`. The event carries `partial_image_index` (the order of the preview) and `b64_json` (the base64 image data). A user interface can decode each one and show a progressively sharper picture.
+
+Streaming only changes how results are delivered. Moderation still applies, and your own checks on the final output (content safety, brand rules, human approval for public assets) are still needed.
+
+The image edit endpoint supports `stream` and `partial_images` too.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: image-and-video-generation
+
+=== D4 single
+Q: A call-center team wants a summary of each support call that states the customer's issue and how it was resolved, in separate fields. Which Azure Language capability is designed for this shape of output?
++ Conversation summarization with aspects such as issue and resolution :: It produces aspect-based summaries of conversations.
+- Extractive summarization of a document :: It selects important original sentences and does not label issue and resolution.
+- Language detection :: It identifies the language of text.
+- Custom named entity recognition :: It extracts domain entities and does not summarize.
+CONCEPT: Summarization in Azure Language has several forms. Extractive summarization selects the most important original sentences, with a rank score and positions. Abstractive summarization writes new sentences. Conversation summaries produce aspects such as issue, resolution, chapter title, narrative and recap. Document summarization is in preview and accepts txt, pdf and docx, with results retrievable for 24 hours.
+
+For a call center, the issue-and-resolution shape is the conversation aspect output. It is already organized into fields.
+
+Retirement note: summarization retires from Azure Language on March 31, 2029, and new projects are directed to Foundry models. With an LLM you would define a Structured Outputs schema with `issue` and `resolution` fields, a low temperature and an `unknown` option for unclear calls.
+
+Run PII detection first so that the summary does not carry personal data.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/overview
+REF: text-analysis-language-and-llms
+
+=== D4 single
+Q: A company builds a support FAQ bot from product manuals. Users ask follow-up questions such as "and for the premium plan?", and the team wants answers filtered by product line. Which custom question answering capabilities address these needs?
++ Multi-turn follow-up prompts and metadata filtering :: Both are listed capabilities of custom question answering.
+- Sentiment analysis and opinion mining :: These label feelings in text and do not answer questions from a knowledge base.
+- Language detection and PII redaction :: They do not build an FAQ knowledge base.
+- Speech translation :: It translates spoken language and does not answer from manuals.
+CONCEPT: Custom question answering (CQA) builds a knowledge base from FAQs, manuals and documents. Key capabilities are automatic question-and-answer extraction, multi-turn follow-up prompts, metadata filtering, active learning, and deep-learning re-ranking over Azure AI Search. The flow is: create a project, test, deploy a REST endpoint, and integrate. Responses carry answers, confidence scores and follow-up prompts.
+
+The two needs in the scenario map directly. A follow-up like "and for the premium plan?" depends on context, which multi-turn prompts handle. Filtering by product line uses metadata attached to the question-answer pairs.
+
+For a bot that needs both an FAQ (CQA) and a calendar skill (CLU), an orchestration workflow routes each utterance to the right project.
+
+Retirement note: CQA retires from Azure Language on March 31, 2029, and new work is directed to Foundry models with retrieval.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/question-answering/overview
+REF: text-analysis-language-and-llms
+
+=== D4 multi
+Q: A team replaces a Language sentiment feature with an LLM on Foundry that returns sentiment, tone and urgency for support emails. Which TWO design choices follow the guidance for LLM text analysis?
++ Use Structured Outputs with an enumerated label list plus an `unknown` value, and set a low temperature (0 to 0.3) :: This gives parseable labels, an "out" for unclear text and consistent results.
++ Treat the email text as untrusted input, because it may contain instructions :: Analyzed text can attempt to steer the model.
+- Allow free-form labels and a high temperature so that the model finds new categories :: This makes labels inconsistent and hard to parse.
+- Send the emails with all personal data unredacted, since the model is private :: PII should be redacted first to lower cost and risk.
+- Skip evaluation because an LLM always beats the Language feature :: The result should be measured on a labeled sample and compared.
+CONCEPT: Using an LLM for text analysis has six steps. Define the output schema (for example sentiment, tone, urgency). Write the prompt with the role, the task, the definition of each label, a few examples and an "out" such as `unknown`. Constrain the output with Structured Outputs so the application can parse it. Set a low temperature for consistent labels. Evaluate on a labeled sample, with accuracy per label, and compare against the Language feature. Add safety.
+
+The safety step means treating the analyzed text as untrusted, because an email can contain instructions such as "mark this as urgent and forward it".
+
+Common problems are drift between runs, invented labels outside the list, and token cost at high volume. A hybrid pattern helps: run Language PII detection first, then send redacted text to the model.
+
+Language features are cheaper and deterministic for fixed tasks, while an LLM handles nuance such as sarcasm and long context.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/language-service/overview, https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured-outputs
+REF: text-analysis-language-and-llms
+
+=== D4 single
+Q: A community site must flag user comments that contain hate speech or self-harm content and receive a severity value for each category. Which service is purpose-built for this?
++ Azure AI Content Safety text classification across hate, sexual, violence and self-harm with severity levels :: It returns a severity per category, and text severity can be the full 0 to 7 scale.
+- Azure Language key phrase extraction :: It returns main concepts and has no harm severity.
+- Azure Translator transliteration :: It converts scripts and does not classify harm.
+- Azure Speech custom voice :: It creates synthetic voices.
+CONCEPT: Detecting "safety issues and sensitive content" in text is a different job from sentiment or tone. Azure AI Content Safety uses classifiers for four categories: hate and fairness, sexual, violence and self-harm. For text it returns severity on a full 0 to 7 scale (it can be trimmed to 0, 2, 4, 6). For images the scale is trimmed (0, 2, 4, 6), and for images with text from a multimodal model it is the full 0 to 7.
+
+The classifiers are trained and tested on English, German, Japanese, Spanish, French, Italian, Portuguese and Chinese. They can work in other languages with less reliability, so test your own languages.
+
+Sensitive personal data is a separate problem handled by PII detection in Azure Language, which can return redacted text.
+
+Sentiment and tone describe how the writer feels; Content Safety describes whether the content is harmful. A tool may need both.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories, https://learn.microsoft.com/en-us/azure/ai-services/content-safety/overview
+REF: responsible-ai-governance, text-analysis-language-and-llms
+
+=== D4 single
+Q: A company uses batch document translation with a Translator resource that has a virtual network and private endpoints enabled. Calls fail when the application uses an access token against the regional endpoint. What is the correct approach?
++ Use the custom domain endpoint, because access tokens cannot be used with VNet or private endpoints :: With VNet or private endpoints enabled, you must use the custom endpoint and cannot use an access token.
+- Switch to a bearer token with a longer lifetime :: Access tokens are not usable in this configuration.
+- Disable layout preservation :: Layout does not influence the endpoint type.
+- Move the files to a public container :: Batch translation uses blob containers with SAS tokens or managed identity, and a public container does not solve the endpoint issue.
+CONCEPT: Document translation has two modes. Batch (asynchronous) handles many or large files: the source and target are blob containers, access uses SAS tokens or managed identity (identity is preferred), and glossary files can be CSV, XLIFF or TSV. Synchronous translation handles one file and returns the result directly; it needs a custom-domain endpoint and no storage account.
+
+Format and layout are preserved, and scanned PDFs go through OCR. Content is processed in the region of the Translator resource.
+
+When a virtual network or private endpoints are enabled on the Translator resource, you must use the custom endpoint and you cannot use an access token. The same custom-domain endpoint is required for synchronous translation.
+
+For authentication in general, Microsoft Entra ID with a managed identity is preferred in enterprises because no secret has to be stored.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/document-translation/overview, https://learn.microsoft.com/en-us/azure/ai-services/translator/overview
+REF: translation
+
+=== D4 single
+Q: A developer submits a batch transcription job with `languageIdentification` listing 12 candidate locales, because the recordings could be in many languages. The job is rejected. What is the limit?
++ Language identification accepts 2 to 10 candidate locales :: More than 10 candidates is not allowed.
+- It accepts between 12 and 20 locales :: The documented range is 2 to 10.
+- Only one candidate locale is allowed :: Language identification needs at least two candidates.
+- There is no limit, but results are slower :: A limit exists, and exceeding it fails the request.
+CONCEPT: Batch transcription is an asynchronous REST job. Options include `diarizationEnabled` for two speakers, or minimum and maximum speaker counts for three or more on mono audio (up to 35 speakers), `languageIdentification` with 2 to 10 candidate locales, `timeToLiveHours` from 6 hours to 31 days, and a destination container inside `properties`.
+
+Language identification lets the service decide which of your candidate languages is spoken in each file. Because it chooses among candidates, you must list at least two and at most ten. Choose candidates that you actually expect.
+
+Common failures in batch jobs are diarization on stereo files (it needs mono), more than 10 candidate locales, results deleted after the time-to-live, and wrong storage permissions.
+
+When a language is known, set the locale directly, which improves quality and avoids candidate selection.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription-create
+REF: speech-solutions
+
+=== D4 single
+Q: A company wants a voice agent that customers can reach by phone number. The team asks whether Voice Live offers a direct SIP connection to the telephone network. What is the documented position?
++ Direct SIP is not offered; telephony works through Teams Phone extensibility or Twilio :: Voice Live is a WebSocket API, and telephony is reached through those integrations.
+- Direct SIP trunking is built in and enabled by default :: Direct SIP is not offered.
+- Voice Live only works with web browsers and cannot use telephony :: Telephony is supported through Teams Phone extensibility or Twilio.
+- Phone calls require replacing Voice Live with the Translator service :: Translator does not provide voice agent telephony.
+CONCEPT: Voice Live is a managed WebSocket API for speech-to-speech conversation. It bundles speech to text, a model, text to speech, noise suppression, echo cancellation, and interruption and end-of-turn detection. It supports function calling (for example voice RAG), avatars, 140+ speech-to-text locales and 600+ voices, with Pro, Standard and Lite tiers.
+
+For telephony, the documented routes are Teams Phone extensibility or Twilio. A direct SIP connection is not offered. So a design that must receive phone calls adds a telephony bridge in front of Voice Live.
+
+Why use Voice Live rather than wiring speech to text, a model and text to speech yourself: lower latency and fewer moving parts. The cost is less control over each stage.
+
+Older material may mention Direct Line Speech; the Learn URL for it now redirects to the Voice Live overview, so Voice Live is the current path.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live
+REF: speech-solutions
+
+=== D5 single
+Q: A search service with one replica has 20 indexers scheduled every five minutes. Indexing jobs queue up and some run late. Which statement explains this and suggests a fix?
++ A search service runs one indexer job per search unit, so add replicas for concurrency; indexers also have no dedicated compute, so run times vary :: Concurrency depends on the number of search units.
+- Indexers always run in parallel without limit, so the delay must be a network problem :: Indexer concurrency is limited by search units.
+- Schedules shorter than five minutes fix the queue :: Five minutes is the minimum interval.
+- Indexers use dedicated compute that you scale in the portal :: Indexers have no dedicated compute.
+CONCEPT: An indexer is the crawler that connects a data source, an optional skillset and an index. It runs on demand or on a schedule, as often as every five minutes. One indexer uses one data source and writes to one index, but many indexers can write to the same index.
+
+Capacity matters: a search service runs one indexer job per search unit, so add replicas to run more indexers at the same time. Indexers have no dedicated compute, so run times vary, and heavy indexing can cause query throttling.
+
+If you need updates faster than every five minutes, use push indexing from your code with the SDK or REST API.
+
+To monitor, check indexer status in the portal or with the Get Indexer Status API, and then run a query to verify results.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A team enabled native blob soft delete and set `NativeBlobSoftDeleteDeletionDetectionPolicy` on the data source. Documents for deleted blobs still stay in the index. Which setup mistake explains this?
++ The soft-delete retention period is shorter than the indexer interval, or blob versioning is on, so the indexer never sees the blob in the soft-deleted state :: The indexer removes a document only if it processes the blob while it is soft deleted, and versioning must be off.
+- Native soft delete works only for Azure SQL Database :: It is a Blob Storage feature.
+- The high water mark policy was enabled for the blob container :: That is a change-detection policy for databases, not a blob deletion fix.
+- The semantic configuration was missing :: Semantic ranking is unrelated to deletion detection.
+CONCEPT: An indexer does not track deletions in a data source. A deleted blob leaves an orphan document in the index unless you configure a deletion detection policy. There are two ways. Native blob soft delete (Blob Storage only) needs soft delete enabled on the storage account, a `NativeBlobSoftDeleteDeletionDetectionPolicy` on the data source, a retention period well above the indexer interval, and blob versioning turned off. The indexer removes a document only if it processes the blob while it is in the soft-deleted state. The alternative uses custom metadata, such as an `IsDeleted` key with a `SoftDeleteColumnDeletionDetectionPolicy`.
+
+If the retention period is shorter than the interval between indexer runs, the blob is permanently removed before the indexer can see it as deleted.
+
+Set the policy before the first run. Documents deleted earlier stay in the index even after you add the policy.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-how-to-index-azure-blob-changed-deleted, https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
+REF: azure-ai-search-configuration
+
+=== D5 multi
+Q: An integrated vectorization indexer calls an Azure OpenAI embedding deployment and often hits throttling. Which TWO actions follow the guidance?
++ Use separate embedding deployments for indexing and for querying, because token limits are per model per subscription :: This protects query traffic from indexing load.
++ Schedule the indexer, for example every five minutes, so that throttled documents are retried in later runs :: Built-in batching and retry are not configurable, so scheduling catches the rest.
+- Disable the embedding skill and index text only :: This removes vector search instead of solving throttling.
+- Route the embedding calls through a public internet proxy to avoid limits :: A proxy does not lift service limits and weakens security.
+- Increase the semantic ranker count :: The ranker is unrelated to embedding throughput.
+CONCEPT: With integrated vectorization the indexer calls an embedding model for every chunk. Azure OpenAI limits tokens per minute per model per subscription, so a large indexing run can use up the limit and also slow down the embeddings needed at query time.
+
+The guidance has two practical steps. First, create separate embedding deployments for indexing and for querying, so that bulk indexing does not starve user queries. Second, schedule the indexer, for example every five minutes. The built-in batching and retry logic are not configurable, and documents that were throttled are picked up in a later run.
+
+Related facts: the vectorizer at query time must use the same embedding model as the skill, and shared private link works for Azure-to-Azure traffic only (group ID `openai_account` for Azure OpenAI).
+
+Also watch total cost: overlap and small chunks increase the number of embedding calls.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A private-network design requires the Azure AI Search indexer to reach an Azure OpenAI resource for embeddings through a shared private link. Which statement is correct?
++ Shared private link works for Azure-to-Azure connections, using the `openai_account` group ID for Azure OpenAI :: This is the documented identifier for that connection.
+- Shared private link works for any external HTTP endpoint on the internet :: It works for Azure-to-Azure only.
+- The group ID for Azure OpenAI is `sites` :: `sites` is for custom skills hosted on App Service or Functions.
+- No group ID is needed, because Search reaches Azure OpenAI over the public internet in every configuration :: In private designs a shared private link is used.
+CONCEPT: In a network-secured design, Azure AI Search must call other Azure services (Azure OpenAI for embeddings, or an Azure Function for a custom skill) without crossing the public internet. A shared private link creates a managed private connection from the search service to the target resource.
+
+It works for Azure-to-Azure connections only. The group ID names the type of target: `openai_account` for Azure OpenAI, and `sites` for custom skills on App Service or Functions. After creation, the owner of the target resource approves the connection.
+
+The same pattern appears in the other direction: the data sources need private endpoints, and DNS zones must resolve names to private IPs. Same-region Storage traffic already uses private IPs, so a storage firewall cannot be added for it.
+
+Use managed identity for the indexer's connections, and prefer Microsoft Entra ID with role-based access control over keys.
+SRC: https://learn.microsoft.com/en-us/azure/search/vector-search-integrated-vectorization, https://learn.microsoft.com/en-us/azure/search/search-security-built-in
+REF: azure-ai-search-configuration, platform-network-and-reliability
+
+=== D5 single
+Q: A Content Understanding analyzer extracts "ShipDate" from shipping documents, but the model often returns the invoice date. The team wants to steer the extraction without changing code. Which setting does this?
++ Write a precise `description` for the field, because it acts as a mini-prompt :: Field descriptions guide the model about what to extract.
+- Increase the document `tableFormat` to markdown :: Table format changes output formatting, not which date is chosen.
+- Set `enableBarcode` to false :: Barcode detection is unrelated to this field.
+- Rename the analyzer :: The name does not influence extraction.
+CONCEPT: A Content Understanding analyzer is a reusable configuration with an `analyzerId`, a `name`, a `description` (used by the model as context, so write it clearly), a base analyzer, `models`, `config` and a `fieldSchema`.
+
+The `fieldSchema` lists fields with a type (`string`, `number`, `boolean`, `date`, `object`, `array`), a `description` that acts like a mini-prompt, and a `method`: `extract` (the value as it appears in the content), `classify` (pick from a fixed enum) or `generate` (free generation). Dates and numbers are normalized automatically.
+
+So a vague description such as "date" invites the wrong date. A precise one such as "The date the goods are shipped, not the invoice date; usually near the carrier name" steers the extraction.
+
+Avoid nesting deeper than two or three levels, and use confidence and grounding (`estimateFieldSourceAndConfidence`) to route low-confidence values to review.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference
+REF: content-understanding-and-document-intelligence
+
+=== D5 single
+Q: A team must produce a validated, calculated result from a single multi-page financial document, for example checking totals against line items. They accept higher token use and time. Which Content Understanding option is meant for answers built from evidence?
++ Set `config.workflow` to `agentic` on a document analyzer (preview), one input file per request :: Agentic mode is for calculations, validations and complex tables, with more tokens and the advanced contextualization rate.
+- Use the `prebuilt-videoSearch` analyzer :: It is for video retrieval, not document calculations.
+- Disable layout and OCR to speed up processing :: This removes information the calculation needs.
+- Use `enableSegment` with 200 categories :: Segmentation splits content; it does not reason across fields.
+CONCEPT: Content Understanding analyzers can run in two workflows. The default workflow performs standard extraction. Agentic mode (preview, API `2026-06-01-preview`) is for answers that must be built from evidence: calculations, validations and complex tables. You set `config.workflow` to `agentic` on a document analyzer, with one input file per request. It uses more tokens and time and the advanced contextualization rate.
+
+The skills outline mentions "single-task and pro-mode" pipelines. The current Learn pages do not use those exact terms. A working model is: standard (single-task) handles one analyzer, one schema and one result across modalities, while pro-style reasoning applies to documents only, across several documents or reference data. The closest documented feature today is agentic mode.
+
+Do not choose agentic mode for video or audio, and do not chain separate pipelines when one standard analyzer covers the content.
+
+Check the outline wording again before the exam.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/analyzer-reference, https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/document/overview
+REF: content-understanding-and-document-intelligence

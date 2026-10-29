@@ -4,7 +4,7 @@ skill: Full-length practice under exam conditions, mapped to the five skills-mea
 sources:
   - https://aka.ms/AI103-StudyGuide
   - https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-apps-and-agents-developer-associate/
-retrieved: 2026-10-26
+retrieved: 2026-10-29
 ---
 
 # Practice tests
@@ -13,10 +13,10 @@ This folder has two kinds of material:
 
 | Kind | What it is | Use it for |
 |---|---|---|
-| **Mock exams 1 to 5** | Five interactive, full-length tests (50 questions each) that you take in the browser, with a timer and a grading step at the end | Practicing under exam conditions and finding weak domains |
+| **Mock exams 1 to 10** | Ten interactive, full-length tests (50 questions each) that you take in the browser, with a timer and a grading step at the end | Practicing under exam conditions and finding weak domains |
 | **Practice test reviews 1, 2 and 4** | Notes on three third-party practice tests you already took, grouped by topic, with the answers checked against Microsoft Learn | Learning from questions you missed |
 
-## The five mock exams
+## The ten mock exams
 
 | Test | Focus | Open |
 |---|---|---|
@@ -25,8 +25,13 @@ This folder has two kinds of material:
 | Mock exam 3 | Design decisions and calculations: PTU sizing, Reciprocal Rank Fusion, image size rules, resiliency, customer-managed keys, agent identity | [Take it](mock-exam-3.md) |
 | Mock exam 4 | Troubleshooting and security: reasoning settings, subnet rules, quota and TPM, CI/CD, guardrail behavior, Search security | [Take it](mock-exam-4.md) |
 | Mock exam 5 | Hardest: close distractors, governance, resiliency, voice channels, Translator behavior, indexer security | [Take it](mock-exam-5.md) |
+| Mock exam 6 | Foundations and first principles, in the short style of public sample questions: resource hierarchy, narrowest service, deployment types, prompt basics, retrieval basics, first steps of speech and indexing | [Take it](mock-exam-6.md) |
+| Mock exam 7 | Architecture, operations and numbers: PTU and Cosmos DB sizing, private DNS, recovery, locks, CI/CD, guardrail settings, retrieval tuning, image edit requests | [Take it](mock-exam-7.md) |
+| Mock exam 8 | Symptoms and diagnosis: status codes, silent failures, network and identity problems, traces, evaluators, media errors, speech and indexer pipelines | [Take it](mock-exam-8.md) |
+| Mock exam 9 | Responsible AI, security and agent design: safety evaluators, oversight, roles and identities, A2A and MCP, memory, guardrail behavior, prompt components, provenance | [Take it](mock-exam-9.md) |
+| Mock exam 10 | Hard dress rehearsal: calculations (PTU, RRF, chunks, defect rates), multi-step reasoning, ingestion and relevance monitoring, tracing details, Content Understanding operations | [Take it](mock-exam-10.md) |
 
-No question text is repeated across the five tests (the build script checks this), so you can take them in any order. Some tests revisit the same topic from a different angle, on purpose. A suggested use: take tests 1 and 2 after finishing the lessons for domains 1 and 2, tests 3 and 4 in the second-to-last week, and test 5 as a dress rehearsal two or three days before the exam.
+No question text is repeated across the ten tests (the build script checks this), so you can take them in any order. Some tests revisit the same topic from a different angle, on purpose. A suggested use: take tests 1, 2 and 6 after finishing the lessons for domains 1 and 2, tests 3, 4, 7 and 8 in the weeks before the exam, tests 9 and 5 when you review weak domains, and test 10 as a dress rehearsal two or three days before the exam. Tests 6 and 8 are good for finding gaps, because they are short and symptom-driven.
 
 ## How the tests were built
 
@@ -46,6 +51,25 @@ No question text is repeated across the five tests (the build script checks this
 2. **Question style.** Each question is a short real-world situation with constraints ("You need to ... Which ... should you use?"), the style described in [Reading exam questions](../exam-tips/reading-exam-questions.md) and seen in the three reviewed practice tests. Wrong options are real services or settings that do not fit, not absurd choices. Between 3 and 6 questions per test ask you to select two answers.
 3. **Facts.** Every answer comes from a lesson in [deep-dives](../deep-dives/best-practices-and-real-world-scenarios.md) and links to the Microsoft Learn page behind it. A build check refuses any source link that is not already cited in the study notes, so links are not invented.
 4. **Explanations.** Every option, right or wrong, has its own explanation of why it is correct or incorrect. Every question also has a **Concept behind this question** block: a plain-language lesson on the ideas the question tests (what each term means, how the mechanism works, how the ideas relate, and a memory aid), so you can learn the topic and not only the answer.
+
+### Tests 6 to 10: how they were researched
+
+Tests 6 to 10 were added after a search for recent public AI-103 sample questions (checked 2026-10-29):
+
+- **Official material.** Microsoft's [Practice Assessment](https://aiskillsnavigator.microsoft.com/credentials/cert-3fb198f57997226a824aa5f52a1a22af9a4597941b2288ed39371c7a9e6bd7c9) needs a sign-in to AI Skills Navigator, so it could not be read for this repo. The [exam sandbox](https://go.microsoft.com/fwlink/?linkid=2226877) only shows the exam interface. The certification page states 120 minutes, proctored, with possible interactive components.
+- **Third-party samples.** The free sample pages of commercial practice banks were read **only for style**: short scenario stems, four options, one answer, and explanations that say why each wrong option fails. Their questions and answer keys were not copied. Commercial "dump" sites were not used.
+- **Original questions.** All 250 questions in tests 6 to 10 are new, written from the lessons in [deep-dives](../deep-dives/best-practices-and-real-world-scenarios.md), and none repeats a question from tests 1 to 5.
+
+Each of the five tests has a theme, so a weak result points to a kind of skill, not only a topic: 6 is foundations, 7 is architecture and numbers, 8 is diagnosis from symptoms, 9 is responsible AI, security and agent design, and 10 is a hard mix with calculations.
+
+**Coverage of the skills outline.** The skills-measured outline of 16 April 2026 has 64 bullets. After tests 1 to 10, an estimated 62 of them (about 97%) have at least one question. The gaps are:
+
+| Outline bullet | Why there is no question |
+|---|---|
+| Enable multimodal reasoning from audio inputs | The lessons do not yet document the audio-input API; add it after reading Learn for the GPT Audio models |
+| Deploy and consume code models | No code-model specific facts are in the lessons; code safety is tested through the Code vulnerability evaluator |
+
+Explanation tooling (in "apply responsible AI instrumentation") is covered through evaluators, traces and citations, because the lessons do not document a dedicated Foundry feature for it. The outline wording "single-task and pro-mode" is covered through the standard and agentic modes of Content Understanding, with the caveat that the current Learn pages do not use those exact terms.
 
 ## How a test works
 
