@@ -1,0 +1,800 @@
+@id: mock-9
+@title: AI-103 Mock Exam 9
+@short: Mock exam 9
+@description: Full-length mock exam with 50 scenario questions. This test focuses on responsible AI, security and governance, and on agent and prompt design: safety evaluators, oversight, roles and identities, A2A and MCP tools, memory, guardrail behavior, prompt components, provenance, translation and speech details, and Search and Content Understanding configuration.
+
+=== D1 single
+Q: A risk and safety evaluation of a wellbeing chatbot shows the model sometimes infers a user's emotional state or other protected traits that the conversation never stated. Which evaluator is built to detect this?
++ Ungrounded attributes :: It detects inferring protected traits, such as an emotional state, that are not present in the context.
+- Protected material :: It detects copyrighted text or code in the output.
+- Code vulnerability :: It detects insecure patterns in generated code.
+- Violence :: It scores violent content in the output.
+CONCEPT: Risk and safety evaluators run in the hosted Foundry Evaluation service, so you do not deploy a judge model. They cover several kinds of risk. Hate and unfairness, Sexual, Violence and Self-harm score harm categories from 0 to 7 (default threshold 3; a case passes if its score is at or below the threshold). Protected material finds copyrighted text or code. Code vulnerability finds insecure patterns in generated code. Ungrounded attributes finds inferences of protected traits that are not present in the context. Indirect attack finds attacks hidden in content. Prohibited actions and Sensitive data leakage (both Preview) are for agents.
+
+Ungrounded attributes matches this case: the chatbot "guessed" something about the user that the conversation never said. The risk is both accuracy and fairness.
+
+Match the symptom to the evaluator name before choosing: each one answers a different question.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators, https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A coding assistant generates SQL and shell snippets that developers paste into production scripts. A reviewer is worried that the generated code may contain insecure patterns. Which evaluator should be added to the pre-release safety suite?
++ Code vulnerability :: It detects insecure patterns in generated code.
+- Task Navigation Efficiency :: It compares tool steps with an expected sequence.
+- Customer Satisfaction :: It rates whether a user would be satisfied.
+- Groundedness :: It checks that answers stay inside the supplied context.
+CONCEPT: Safety is more than offensive text. For an assistant that writes code, a major risk is that the code itself is unsafe, for example building SQL by string concatenation or running shell commands with unchecked input. The Code vulnerability evaluator looks for insecure patterns in generated code, and it is part of the risk and safety group together with Protected material, Ungrounded attributes, Indirect attack and the harm category evaluators.
+
+Use it in the pre-production stage: build a dataset with normal and adversarial requests ("write a login query"), run the evaluators and the red teaming agent, set a pass rule such as a maximum defect rate, and make it a release gate. A defect rate is the share of test cases that fail.
+
+After release, continue with sampled continuous evaluation and alerts. Code review by people remains important, because evaluators are aids and not guarantees.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A research agent reads web pages and emails. Testers want an evaluator that detects attempts hidden in content, such as manipulated content, intrusion and information gathering. Which evaluator targets these?
++ Indirect attack (XPIA) :: It detects attacks hidden in content that the system reads.
+- Hate and unfairness :: It scores hateful or unfair content.
+- Protected material :: It finds copyrighted material.
+- Response Completeness :: It measures recall of expected facts.
+CONCEPT: Two attack families matter for generative systems. A user prompt attack comes from the user: change the system rules, embed a fake conversation, role-play a persona without limits, or hide the request with encoding. An indirect (document) attack comes from a third party: a document, email, web page or tool result carries hidden commands. Its goals include manipulated content, intrusion (access to system infrastructure), information gathering, availability attacks, fraud and malware.
+
+For measurement, the Indirect attack evaluator (XPIA) checks for such attempts. For prevention at runtime, Prompt Shields and the guardrail control for indirect attacks scan user input and tool responses. The AI Red Teaming Agent, which uses the PyRIT framework, generates attacks that the team did not think of.
+
+The three pieces form a loop: Discover (evaluators and red team), Protect (guardrails) and Govern (policy and ownership).
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators, https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/content-filter-prompt-shields
+REF: responsible-ai-governance, agent-safety-and-identity
+
+=== D1 single
+Q: A finance agent calls tools that return customer records. Reviewers worry that the agent may expose sensitive data in its replies or intermediate tool calls, and that judging only the final answer is not enough. Which evaluator (Preview) is meant for agents in this situation?
++ Sensitive data leakage :: It checks whether an agent exposes sensitive data.
+- Fluency :: It scores the language quality of text.
+- Tool Output Utilization :: It checks whether the agent used the tool result correctly.
+- Task Completion :: It checks whether the task finished with a usable deliverable.
+CONCEPT: Agents add risks that plain chat does not have. They call tools, read third-party content and act. Two risk evaluators are made for agents and are in Preview: Prohibited actions (agent actions outside policy) and Sensitive data leakage (the agent exposing sensitive data).
+
+A common mistake is judging only the final answer. An agent can leak data in an intermediate tool call and then give a clean-looking final answer. Evaluating the full set of messages, including tool calls and results, finds this.
+
+Combine the evaluator with runtime controls: tool call controls in the guardrail look at what the agent proposes to send to a tool, least-privilege identities limit what it can reach, and approvals protect high-impact actions. Add the failing cases to the test suite so the gate stays strict.
+
+Use Preview features with care and re-check their status before relying on them.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/evaluation-evaluators/risk-safety-evaluators
+REF: responsible-ai-governance, agent-safety-and-identity
+
+=== D1 single
+Q: A team ran a red teaming exercise once before launch and considers the safety program finished. Which statement matches the guidance on the AI Red Teaming Agent?
++ Run it before release and again on a schedule after release, together with continuous evaluation of sampled production traffic :: Attackers adapt, and models, prompts and data change, so testing must repeat.
+- One run is enough because attacks never change :: Attackers adapt, so a single run goes stale.
+- It replaces all human review and needs no oversight :: It is best used with human review.
+- It only checks spelling mistakes :: It simulates attacks and scores results by risk category.
+CONCEPT: A fixed evaluation dataset replays questions you already know. Attackers invent new ones. The AI Red Teaming Agent simulates attacks, using Microsoft's PyRIT framework (jailbreaks, prompt injection and more), and scores the target by risk category such as hate or violence. It is best used with human review.
+
+Timing matters. Run it before release. Then run it on a schedule after release (scheduled red teaming), and pair it with continuous evaluation of sampled production traffic and Azure Monitor alerts. Re-run it after any change to the model, the prompts, the tools or the guardrails, because each change can open a new gap.
+
+In the Discover, Protect and Govern framework, red teaming belongs to Discover, and what it finds feeds Protect (new controls) and Govern (incident process and ownership).
+
+Memory aid: a fire drill once is not a fire safety program.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability, https://learn.microsoft.com/en-us/azure/foundry/responsible-use-of-ai-overview
+REF: agent-safety-and-identity, responsible-ai-governance
+
+=== D1 single
+Q: A grocery chain lets an agent reorder low-risk stock automatically. Volume is high and each action is cheap to undo. Managers do not want to approve each action but want to be able to step in. Which oversight pattern fits?
++ Human on the loop: monitor and intervene when needed :: This fits low-risk, high-volume actions.
+- Human in the loop: approve every action before it runs :: This suits hard-to-reverse, high-impact actions and would not scale here.
+- No oversight at all :: Even low-risk automation needs monitoring and an escalation path.
+- Human after the fact only, with yearly audits :: A yearly audit is too slow for operational issues.
+CONCEPT: Human oversight is not one setting. There are three patterns. Human in the loop means a person approves before the action runs; use it for hard-to-reverse or high-impact actions such as payments, access grants and messages to customers. Human on the loop means a person monitors and can intervene; use it when actions are low risk but volume is high. Human after the fact means periodic audits of samples; use it for low-risk content.
+
+Whatever the pattern, record the approver, the time and the evidence. Measure how often humans change or reject the system's proposals: a high change rate says autonomy should not increase yet.
+
+Controls in Foundry support this: approval flows for risky tools, tracing for audit, alerts when outputs fail quality thresholds, and constraints and tool-access controls to limit what the agent can do.
+
+Choose the pattern by the cost of a mistake and the volume of actions.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/responsible-use-of-ai-overview, https://learn.microsoft.com/en-us/azure/foundry/agents/overview
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A governance checklist for an AI application includes an incident process. According to the responsible AI guidance, which item belongs in that process when a team discovers a vulnerability in the model itself?
++ Report the model vulnerability to the Microsoft Security Response Center (MSRC) :: The governance checklist names MSRC for model vulnerabilities.
+- Publish the exploit details on social media first :: This is not responsible disclosure.
+- Wait for the next yearly review :: Incidents need a defined, timely process.
+- Ignore it if the guardrail blocked the test prompt once :: A one-time block does not remove a vulnerability.
+CONCEPT: Govern is the part of the framework that answers "who is accountable, and how do we prove it?". A practical governance checklist contains: a named owner and escalation path; documented intended use and prohibited use; evaluation results stored with the release; change control for prompts, models, tools and guardrails; access control by role, with no shared keys; an incident process, including reporting a model vulnerability to the Microsoft Security Response Center (MSRC); and periodic review, at least on every model or major prompt change.
+
+Why write it down: when something goes wrong at night, nobody should have to invent the process. The owner knows who decides, the incident process says whom to inform, and the stored evaluation results show what was tested before release.
+
+A common mistake is to treat the content filter as the whole program, with no owner and no review cycle.
+
+Governance repeats for the life of the system.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/responsible-use-of-ai-overview
+REF: responsible-ai-governance
+
+=== D1 multi
+Q: A legal-research assistant answers questions from case documents. The product team lists transparency measures to implement. Which TWO items follow the transparency and explainability guidance?
++ Tell users they are talking to an AI and cite the sources used in grounded answers :: Disclosure and citations let users verify answers.
++ Keep traces of inputs, tool calls, outputs, model and version for audit :: Traces provide an audit trail.
+- Hide the model version so that users cannot compare it with others :: Versions should be recorded, not hidden.
+- Remove all limits statements to avoid discouraging users :: The system should state what it is for and what it should not be used for.
+- Assume model-explanation features exist for every Foundry model without checking :: Do not assume a specific feature; check what Learn documents.
+CONCEPT: Transparency means users and auditors can understand what the system is and how it produced an answer. The guidance lists several practices. Disclose that the user is talking to AI. Cite sources in grounded answers so users can verify. State limits: what the system is for and what it should not be used for; Microsoft publishes transparency notes for its services, and your app should have its own. Keep traces for audit: inputs, tool calls, outputs, model and version.
+
+For generated media, add provenance and labels, and remember that customers are responsible for meeting the transparency rules that apply to them.
+
+Explainability tooling needs care: do not assume that a particular model-explanation feature exists in Foundry. Use what is documented, for example citations, traces and evaluator results.
+
+Transparency also supports quality: a visible citation makes errors easier to spot.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/responsible-use-of-ai-overview, https://learn.microsoft.com/en-us/azure/foundry/concepts/observability
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A Spanish-language and Vietnamese-language community app relies on Azure AI Content Safety text classifiers. The team asks how reliable they are in these languages. What is the correct guidance?
++ The classifiers are trained and tested on eight languages (English, German, Japanese, Spanish, French, Italian, Portuguese and Chinese) and may work in others with less reliability, so test your own languages :: Spanish is covered; Vietnamese needs your own testing.
+- They work equally well in every language without testing :: Coverage outside the eight languages is less reliable.
+- They only work in English :: Eight languages are listed.
+- They cannot be used at all outside the United States :: Region is not the limit; language coverage is.
+CONCEPT: Content Safety classifies text and images into four categories: hate and fairness, sexual, violence and self-harm. The text classifiers are trained and tested on English, German, Japanese, Spanish, French, Italian, Portuguese and Chinese. They can work in other languages, but with less reliability.
+
+For a product with other languages (here Vietnamese), do not assume: build a small test set with real and adversarial examples in that language, count false blocks and misses at your chosen thresholds, and adjust thresholds by category. Consider human review for borderline cases.
+
+Remember also that severity scales differ: text uses the full 0 to 7 scale (it can be trimmed to 0, 2, 4, 6), images use a trimmed scale of 0, 2, 4, 6, and image with text from a multimodal model uses the full 0 to 7.
+
+Re-test after every change and keep the results.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories
+REF: responsible-ai-governance
+
+=== D1 single
+Q: A developer holds the Foundry User role on a project. They build an agent successfully and then try to publish it as an agent application, but the action is denied. What is the least privileged role change that allows publishing?
++ Assign Foundry Project Manager on the Foundry resource :: Publishing needs at least Project Manager.
+- Assign Foundry Agent Consumer :: It only allows calling agent endpoints.
+- Assign Azure AI Developer :: Learn advises not using this role for Foundry projects.
+- Assign Cognitive Services Contributor :: Older Cognitive Services roles are not recommended for Foundry projects, except Usages Reader for quota.
+CONCEPT: Foundry roles divide duties. Foundry Agent Consumer calls published agent endpoints only (a good fit for apps and end-user service principals). Foundry User builds and develops in a project, with reader access. Foundry Project Manager builds, publishes agents and assigns Foundry User to others. Foundry Account Owner creates accounts and projects and manages models but cannot build in projects. Foundry Owner has all rights.
+
+Publishing creates a stable endpoint and a distinct agent identity, so it is a more privileged act than building. It needs at least Project Manager on the Foundry resource.
+
+Do not use the older Cognitive Services roles (except Usages Reader for quota) or Azure AI Developer for Foundry projects. Keys bypass role-based access control, so prefer Microsoft Entra ID.
+
+After publishing, reassign the access the new agent identity needs: the permissions of the shared project identity do not transfer.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/rbac-foundry, https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-identity
+REF: agent-safety-and-identity
+
+=== D1 single
+Q: An administrator assigns a user a role scoped to a single published agent. The user then tries to open the project's other agents and manage the project's connections, and is denied. Why?
++ Agent-scope role assignments only affect access to that agent's endpoints :: They do not give project-wide rights.
+- Agent-scope roles automatically inherit to all agents in the project :: They only apply to that agent's endpoints.
+- Agent-scope roles are ignored unless keys are enabled :: Keys are not needed and bypass role control.
+- The user must be added to Microsoft Entra Global Administrators :: This is unrelated and over-privileged.
+CONCEPT: Role-based access control can be assigned at several scopes: subscription, resource group, Foundry resource, project, and also a single agent. A narrower scope grants less access.
+
+Learn notes that agent-scope role assignments only affect access to that agent's endpoints. They are meant for giving an app or user permission to call one agent. They do not allow building, managing other agents or managing connections.
+
+This supports least privilege. A line-of-business application that only calls a published agent should receive Foundry Agent Consumer (or an equivalent at agent scope), not Foundry User.
+
+Remember that API keys bypass these controls and cannot tell you who called, so use Microsoft Entra ID and managed identities.
+
+Check the scope of a role assignment first when a person has the right role but still sees "access denied".
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/rbac-foundry
+REF: agent-safety-and-identity
+
+=== D1 single
+Q: A team grants developers the Cognitive Services Contributor role to work in Foundry projects because it worked for older Azure OpenAI resources. A reviewer objects. What does the guidance say?
++ Use the Foundry roles (User, Project Manager, Account Owner, Owner, Agent Consumer) instead; the older Cognitive Services roles are not recommended, except Usages Reader for quota :: Foundry roles match the platform's duties.
+- Cognitive Services roles are the only supported roles for Foundry projects :: Foundry has its own roles.
+- Azure AI Developer is the recommended replacement :: Learn advises not using it for Foundry projects.
+- Roles are not needed because projects are public by default :: Access control applies.
+CONCEPT: Role names carry history. Older Azure OpenAI and Azure AI services used roles named Cognitive Services Contributor or User, and hub-based projects used Azure AI Developer. Current Foundry guidance defines its own roles for Foundry resources and projects: Agent Consumer, User, Project Manager, Account Owner and Owner.
+
+The advice is to use the Foundry roles and not the older ones, with one exception: Usages Reader (from the Cognitive Services family) is used to view quota.
+
+Why it matters: a broad old role can grant more (or different) rights than intended, and may not give the permissions that new features need. Review role assignments when migrating from older resources.
+
+Also give the project's managed identity the Foundry User role on the Foundry resource, or some features fail silently, and use Azure Policy to turn off local (key) authentication.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/rbac-foundry
+REF: agent-safety-and-identity, platform-network-and-reliability
+
+=== D1 single
+Q: A team deletes a Foundry project that contained the shared project identity and several unpublished agents, and separately deletes one published agent application. Which statement describes what is removed?
++ Deleting a project removes its blueprint and shared identity; deleting an agent application removes its distinct identity :: These are the documented lifecycle effects.
+- Deleting a project leaves its shared identity in place forever :: The shared identity is removed with the project.
+- Deleting an agent application removes the whole project identity :: It removes only the agent's distinct identity.
+- Deleting either one affects only the model deployments :: Model deployments belong to the Foundry resource.
+CONCEPT: Foundry gives each agent a Microsoft Entra agent identity, a special service principal, so tools can authenticate without secrets in prompts or code. While an agent is in development, unpublished agents in a project share one project identity. When an agent is published, it gets its own distinct identity, created at publish time, with its own permissions, audit trail and lifecycle.
+
+The identity lifecycle follows the objects. Deleting a project removes its blueprint (the template for a class of agents) and the shared identity. Deleting an agent application removes its distinct identity.
+
+In the Entra admin center (Agent ID), administrators can inventory all agent identities and apply Conditional Access, identity protection, network controls and ownership and expiry governance.
+
+Practical consequence: role assignments given to a deleted identity disappear with it. Use a user-assigned managed identity for projects if you want role assignments to survive project recreation.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-identity
+REF: agent-safety-and-identity
+
+=== D1 single
+Q: A compliance team wants to keep traces in Application Insights for debugging but restrict who can see content that may include sensitive user text and tool arguments. Which approach fits the guidance?
++ Redact or minimize personal data before it reaches telemetry, and route sensitive content to a dedicated table with restricted access :: Traces can contain user text, model output and tool arguments and need the same controls as production logs.
+- Turn off all access controls on the workspace to simplify debugging :: Traces can contain personal data and need protection.
+- Put secrets in span attributes so they can be searched :: Do not put secrets in prompts, arguments or span attributes.
+- Keep the data forever regardless of retention policy :: Apply the same access controls and retention as production logs.
+CONCEPT: A trace records user inputs, model outputs, tool calls with arguments and results, token use and timing. That makes it very useful for debugging and also a privacy risk. The privacy guidance has four parts: do not put secrets in prompts, tool arguments or span attributes; redact or minimize personal data before it reaches telemetry; apply the same access controls and retention as for production logs; and, where needed, route sensitive content to a dedicated table with restricted access.
+
+Retention and sampling follow your Application Insights configuration, and viewing traces in the portal needs a Log Analytics reader role.
+
+For audit, use diagnostic settings to Log Analytics for questions like "who called which deployment and when". Allow for the cost of telemetry volume.
+
+Debugging value and privacy are balanced by design, not by turning off tracing.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/observability/concepts/trace-agent-concept, https://learn.microsoft.com/en-us/azure/foundry/concepts/observability
+REF: observability-and-agent-lifecycle
+
+=== D2 single
+Q: A bank wants customers to talk to a prompt agent by voice, with natural interruptions, using the same agent definition as the text channel. Which agent type is intended for this?
++ A voice-based prompt agent, which adds real-time speech through Voice Live :: It extends a prompt agent with voice.
+- A hosted agent written only to transcribe files :: Hosted agents are custom code in a container, not specifically voice.
+- A workflow agent with no speech support :: Workflows orchestrate agents; they do not provide speech.
+- A batch transcription job :: It transcribes recorded audio asynchronously.
+CONCEPT: Foundry offers several agent types. A prompt agent is configuration only: instructions, a model and tools. A voice-based prompt agent adds real-time speech through Voice Live. A hosted agent is your own code in a container, for example built with the Microsoft Agent Framework, used when you need custom orchestration or protocols. Workflows orchestrate several agents declaratively.
+
+Choosing the type is the first step of the agent lifecycle. The advice is to pick the simplest type that meets the need, because choosing wrongly early means a rewrite later.
+
+Voice Live is a managed WebSocket API for speech-to-speech conversation. It bundles speech to text, a model, text to speech, noise suppression, echo cancellation and interruption and end-of-turn detection. Monitoring cards for voice agents need Application Insights, and evaluation of voice agents supports full-conversation runs only.
+
+Telephony is possible through Teams Phone extensibility or Twilio, not direct SIP.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/development-lifecycle, https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live
+REF: observability-and-agent-lifecycle, speech-solutions
+
+=== D2 multi
+Q: A memory store keeps both `user_profile_enabled` facts and `chat_summary_enabled` summaries for an assistant. Which TWO statements about how they should be retrieved are correct?
++ User profile items (preferences and facts) are retrieved once at the start of a conversation :: They are stable facts that personalize the whole conversation.
++ Chat summaries are retrieved dynamically, based on the current conversation :: They depend on the topic being discussed.
+- Both types must be retrieved at the end of every conversation only :: This does not match the guidance.
+- User profile items should be re-extracted on every message and never stored :: The store keeps them for later retrieval.
+- Chat summaries are retrieved once at deployment time of the model :: They are retrieved per conversation, not at deployment.
+CONCEPT: A memory store keeps durable knowledge that an agent extracts from conversations. After a conversation the system extracts items worth keeping, consolidates duplicates and conflicts with a language model, stores them partitioned by scope, and retrieves them at run time through the memory search tool or the store APIs.
+
+There are different memory types. `user_profile_enabled` keeps preferences and facts about the user, such as a preferred name or a dietary restriction. Retrieve them once at the start of a conversation. `chat_summary_enabled` keeps distilled summaries of topics or threads. Retrieve them dynamically, based on the current conversation. `procedural_memory_enabled` appears in the latest preview.
+
+Creating a store needs a chat model deployment and an embedding model deployment. Use one store per agent, set `scope` to `{{$userId}}` for per-user isolation, and set `default_ttl_seconds` for retention.
+
+Memory is Preview, so check current limits.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/memory-usage, https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-memory
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: A Foundry orchestrator agent must call another team's agent that exposes an A2A endpoint. In the setup, what is the first step?
++ Create a project connection of category `RemoteA2A` that targets the remote agent's base URI, with authentication :: The tool then points to this connection.
+- Add an embedding model deployment :: Embeddings are unrelated to A2A calls.
+- Publish the remote agent as a hosted container image :: The remote agent only needs an A2A-compatible endpoint.
+- Create a Cosmos DB container for each remote agent :: Data containers are not required for the connection.
+CONCEPT: The A2A (agent-to-agent) tool lets a Foundry agent call any A2A-compatible endpoint, including another Foundry agent exposed as one. The sequence has four steps. First, create a project connection of category `RemoteA2A`, whose target is the remote agent's base URI, with authentication (for a Foundry target: the A2A base path and the audience `https://ai.azure.com`). Second, add an `A2ATool` to the orchestrator agent, pointing to that connection; the orchestrator reads the remote agent card to learn what the remote agent can do. Third, run the orchestrator; when the question fits, it calls the remote agent. Fourth, the orchestrator writes the final answer and keeps managing the conversation.
+
+A missing connection or wrong authentication shows up as call failures. Check with the trace or run output that the tool call happened.
+
+The pattern keeps one agent in control, and each specialist call is auditable.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent
+REF: building-agents-with-foundry
+
+=== D2 multi
+Q: A team compares the `a2a` and `a2a_preview` tool types for production use. Which TWO statements are correct?
++ The `a2a` tool type (protocol 1.0) is generally available, while `a2a_preview` (protocol 0.3) stays in preview :: GA features are preferred for production.
++ The A2A tool currently supports text modality only and no streaming :: These are documented limits.
+- Both tool types support streaming and image inputs :: Streaming and non-text inputs are not supported.
+- `a2a_preview` replaced `a2a` as the GA version :: The reverse is true: `a2a` is GA.
+- The classic Connected Agents tool is the recommended replacement for A2A :: Connected Agents is not available in the new Foundry Agent Service.
+CONCEPT: In the new Foundry Agent Service, the replacements for the old Connected Agents tool are the A2A tool and workflows. The A2A tool type comes in two versions: `a2a`, protocol 1.0, which is generally available; and `a2a_preview`, protocol 0.3, which stays in preview. Prefer GA features for production, and mark preview ones clearly.
+
+Limits to remember: the A2A tool supports text modality only, with no streaming. If the use case needs images or streaming responses between agents, the tool is not a fit yet.
+
+The target of an A2A tool can be any A2A-compatible endpoint, including another Foundry agent exposed as one. A workflow can orchestrate several agents declaratively (sequential, group chat, human-in-the-loop).
+
+Older practice material may still talk about "connected agents" or `agent.as_tool`. Pick the option that matches the product named in the question.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent
+REF: building-agents-with-foundry
+
+=== D2 single
+Q: A remote MCP server gives an agent tools that can change data. Compliance requires that a person approves every MCP tool call before it runs. Which setting implements this?
++ Set `require_approval` to `always` for the MCP tool :: This requires approval for each call.
+- Set `allowed_tools` to an empty list :: It limits which tools are exposed; an empty list would expose none or does not implement approval.
+- Raise the temperature to reduce risky calls :: Randomness is not a control.
+- Disable tracing so approvals are not logged :: Approvals should be logged for high-risk actions.
+CONCEPT: Remote Model Context Protocol (MCP) servers expose tools to agents. The risks: a server may expose many tools, tool descriptions and results come from a third party, and some tools change data.
+
+Two settings control exposure and approval. `allowed_tools` limits which tools of the server the agent can use (for example only three read-only tools out of forty). `require_approval="always"` requires a person to approve each call. Treat tool descriptions and results from remote servers as untrusted. Log approvals for high-risk actions.
+
+In the Microsoft Agent Framework, `@tool(approval_mode=...)` controls approval for function tools. Learn's sample uses `never_require` for brevity and says to use `always_require` in production for human-in-the-loop.
+
+Layering matters: enforce limits in code and permissions, because prompts can be bypassed.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/model-context-protocol, https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
+REF: agent-safety-and-identity, building-agents-with-foundry
+
+=== D2 single
+Q: A developer uses the Microsoft Agent Framework and marks a refund function with `@tool(approval_mode="never_require")`, copied from a quickstart. Before production, a reviewer asks for human-in-the-loop control on refunds. What should change?
++ Use `always_require` for tools that change data, so a person approves each call :: Learn's sample uses never_require for brevity and says to use always_require in production for human-in-the-loop.
+- Keep `never_require` and add a sentence to the prompt asking the model to be careful :: A prompt does not enforce approval.
+- Remove the refund tool and ask users to refund manually :: This removes the capability instead of controlling it.
+- Increase `max_output_tokens` :: Output length does not control approval.
+CONCEPT: Tools that act in the world need approval controls. In the Microsoft Agent Framework, a function tool declares an approval mode. `never_require` lets the agent run it without asking, which is convenient in samples. `always_require` pauses the run so that a person can approve or reject the call, which is human-in-the-loop.
+
+Learn's function calling sample says to use `always_require` in production. Apply it to tools with side effects: refunds, payments, access grants, sending messages. For low-risk read-only tools, approval can be skipped to avoid delay.
+
+Combine approval with other layers: the tool enforces limits in code (for example refunds over $200 need approval), the identity has least privilege, tool call controls in the guardrail inspect what is about to be sent, and the trace stores who approved and when.
+
+Principle: prompts guide; code and permissions enforce.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling, https://learn.microsoft.com/en-us/azure/foundry/agents/overview
+REF: agent-safety-and-identity, building-agents-with-foundry
+
+=== D2 single
+Q: A team wants to authenticate an agent to a downstream service with its agent identity instead of storing secrets. Which tool types does agent identity authentication currently support?
++ MCP and A2A tools :: Agent identity authentication currently works with these two.
+- Every built-in tool, including all grounding tools :: Other tools may use key-based auth or OAuth identity passthrough.
+- Only function tools run by the application :: Function tools run in your code, with your credentials.
+- Only the Code Interpreter tool :: It is not the supported set.
+CONCEPT: Foundry gives each agent a Microsoft Entra agent identity so tools can authenticate without secrets in prompts or code. At runtime there are four stages: the blueprint authenticates through a federated credential that trusts the project's managed identity; Entra issues a token for the specific agent identity; Agent Service requests an access token whose audience is the downstream service (for example `https://storage.azure.com`); and the call is made with that token, and the target checks the role assignments of the agent identity.
+
+Support is limited today: agent identity authentication works with MCP and A2A tools. Other tools may use key-based authentication or OAuth identity passthrough; check each tool's documentation.
+
+Two common failures: the wrong audience (it must be the service's resource identifier, not the URL of your MCP server) and roles on the wrong identity (the agent identity, not the managed identity, needs the role on the target).
+
+Access can be delegated (on behalf of a signed-in user) or application-only (client credentials).
+SRC: https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-identity
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: A published agent has no custom guardrail assigned, but its model deployment has a custom guardrail with Violence set to Medium. What guardrail applies to the agent?
++ The agent inherits the model deployment's guardrail :: Without an agent-level guardrail, the agent uses the model's.
+- The agent runs with no guardrail until one is assigned :: It inherits the model's guardrail by default.
+- The agent always uses `Microsoft.DefaultV2` regardless of the model :: DefaultV2 is the default for models, and inheritance applies when the agent has none.
+- The agent merges the model guardrail with a new empty one automatically :: There is no merging; an agent guardrail fully replaces the model's.
+CONCEPT: A guardrail is a named collection of controls. Each control is made of a risk, an intervention point and an action. A guardrail can be assigned to models and to agents.
+
+Assignment rules: `Microsoft.DefaultV2` is the default guardrail for models. A custom guardrail on the agent wins. If the agent has none, it inherits the guardrail of its model deployment. When an agent has its own guardrail, it fully replaces the model's: nothing is merged. A model's setting of High on user input does not carry over to an agent whose own guardrail says Low or defines no tool controls.
+
+This is the most tested rule. Always check which guardrail is effective for the agent and not just for the model, and remember that guardrails apply to agents built in Foundry Agent Service, not to other agents merely registered elsewhere.
+
+Risks that agents do not support yet silently do nothing for the agent.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview, https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: A team wants a guardrail control for an agent that only flags problematic content (annotate) without blocking, to tune false positives. What does the documentation say about the available actions?
++ Annotate (flag without blocking) is for models; agents currently support annotate and block :: The annotate-only action is not available for agents.
+- Agents support annotate-only, while models support only block :: This reverses the support.
+- Both models and agents support only a third action called quarantine :: No such action is documented.
+- Actions cannot be changed after a guardrail is created :: Actions are part of each control.
+CONCEPT: A control chooses an action when its risk is detected. Annotate adds a flag to the response without blocking; it is available for models. Annotate and block stops the content; agents currently support annotate and block.
+
+Annotations carry `detected` and `filtered` flags. `detected: true, filtered: false` means the content was seen but allowed, which is what annotate-only mode produces. This is useful on a model deployment to tune false positives before turning blocking on.
+
+For agents, tuning needs another approach: test on a model deployment with the same guardrail first, use evaluation datasets with realistic prompts, and then apply annotate and block on the agent.
+
+Behavior of the block action: a tool call control with annotate and block means the tool call is not executed and the agent stops until there is another user input; a tool response control stops the agent immediately and does not save the content to memory.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview, https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: A tool call control with annotate and block fires because the agent proposes to send a customer's card number to a tool. What happens?
++ The tool call is not executed, and the agent stops until there is another user input :: This is the documented behavior for annotate and block at the tool call point.
+- The tool runs, and the card number is removed from the log only :: The call is blocked before it runs.
+- The agent retries the same call ten times automatically :: Retry is not documented behavior.
+- The control deletes the agent :: Controls do not delete agents.
+CONCEPT: Guardrails can inspect an agent at four points. The tool call point scans what the agent proposes to send to a tool, meaning the tool name and arguments. It defends against an agent about to send harmful or sensitive data, or to take an unintended action. It is a Preview feature for agents.
+
+When a tool call control is set to annotate and block and it fires, the tool call is not executed and the agent stops until there is another user input. This prevents the harmful call and leaves the next step to the user or the application.
+
+Compare with the tool response point: when it fires with annotate and block, the agent stops immediately and the malicious content is not saved in the agent's memory.
+
+Remember the limits: these controls work only with tools that support moderation (for example Azure AI Search, Azure Functions, OpenAPI, SharePoint grounding, Fabric Data Agent, Bing grounding and Browser Automation), and each point adds about 50 to 100 ms.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/guardrails/intervention-points
+REF: agent-safety-and-identity
+
+=== D2 single
+Q: A prompt for a non-reasoning model asks it to decide which of three suppliers is cheapest including shipping, and the answers contain arithmetic mistakes. The team wants the model to show intermediate steps and end with a parseable line. Which technique and format fit?
++ Chain of thought: ask for step-by-step reasoning first and a final line in a fixed format such as `ANSWER is: <name>` :: It reduces errors for non-reasoning models and makes review easier.
+- Ask for the answer only, with no steps, to save tokens :: Skipping steps increases the risk of arithmetic errors.
+- Use the same instruction for a reasoning model and request raw hidden reasoning :: Chain of thought is for non-reasoning models, and extracting hidden reasoning is unsupported.
+- Raise the temperature to 2 :: More randomness makes arithmetic worse.
+CONCEPT: Chain of thought means asking the model to reason step by step before giving the final answer. For non-reasoning models it can reduce errors, because each step is generated and then used by the next, and it makes the output easier to review. Use a fixed format for the final answer, such as "ANSWER is: <name>", so that your code can parse it.
+
+Do not use this technique with reasoning models. They produce hidden reasoning tokens by themselves, and Learn recommends short, goal-oriented prompts for them. Extracting hidden reasoning by any means other than the reasoning summary parameter is unsupported and may violate the Acceptable Use Policy.
+
+For exact arithmetic, a better design may use a tool: let the model call a function that does the calculation in code, then explain the result. That follows the principle of using rules and code for exact decisions.
+
+Always test the prompt on examples that include edge cases.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering, https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/reasoning
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: A team wants a model to answer questions about current inventory. Instead of relying on the model's memory, the prompt technique allows the model to stop and request a search, then continues with the results. Which prompt technique and Foundry feature implement this?
++ Affordances (tools): in Foundry, tools and function calling let the model request a search that your system or the service runs :: The model asks for a tool, receives the result and answers.
+- Few-shot examples only, because they store inventory permanently :: Examples condition the model for one call and do not store data.
+- A longer temperature schedule :: Temperature does not supply facts.
+- Prime the output with a cue such as "Key Points:" :: A cue steers form, not the source of facts.
+CONCEPT: Models do not know your live data. One of the prompt techniques is to use affordances, meaning tools the model can use. The simple form is a text protocol: the model emits something like `SEARCH("query")`, the program stops, runs the search, pastes the results back and asks for the answer. In Foundry the same idea is implemented properly with tools and function calling: the model returns a `function_call` with a name and arguments, your application (or the service, for hosted tools) executes it, and the result goes back.
+
+Compare with other techniques. A cue primes the beginning of the answer. Few-shot examples teach format and conditioning for the current call only. Grounding context supplies data in the prompt, which is the basis of RAG. Break the task down splits a hard task into steps.
+
+For live data, tools or retrieval are the right choice, and the answer should cite its sources.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering, https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/function-calling
+REF: prompt-engineering-parameters-and-reflection, building-agents-with-foundry
+
+=== D2 single
+Q: A prompt includes the current date, the user's stated preferences and a list of favorite topics. These help the model personalize its answer but are not themselves the text to be transformed. According to Learn's five components of a prompt, what are they called?
++ Supporting content :: Context that influences the output but is not the target of the task.
+- Primary content :: The text being transformed, such as the paragraph to summarize.
+- Cue :: The start of the answer that steers its form.
+- Instructions :: What the model should do.
+CONCEPT: Learn splits a prompt into five components, and not all are needed every time. Instructions say what to do. Primary content is the text being transformed or analyzed, for example the paragraph to translate. Examples are input and output pairs; none means zero-shot, one means one-shot, several means few-shot. A cue is the start of the answer that steers its form, for example "Key Points:". Supporting content is context that influences the output but is not the target, such as the current date, user preferences or "my important topics".
+
+In the Chat API, instructions go in the system message, and few-shot examples are sample user and assistant turns after it.
+
+Knowing the vocabulary helps in questions: "give the model a starting phrase" is a cue; "the text to summarize" is primary content; "today's date and user preferences" is supporting content.
+
+Keep prompts compact: they compete for the context window.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection
+
+=== D2 single
+Q: A developer wants a classifier prompt to follow a labeling style the model gets wrong when given only instructions. They add three labeled sample inputs and outputs after the system message. What is this approach called, and how long does the effect last?
++ Few-shot prompting, which conditions the model for that call only; nothing is learned permanently :: Examples steer the current request and do not change the model.
+- Fine-tuning, which permanently changes the model weights :: Examples in a prompt do not train the model.
+- Zero-shot prompting, because no examples are involved :: Zero-shot means no examples.
+- Reinforcement training that persists across all customers :: Prompt examples do not affect other customers or later calls.
+CONCEPT: In a prompt, examples are input and output pairs. With no example, the technique is zero-shot. With one, it is one-shot. With several, it is few-shot. They show the model the pattern you want, for example a label set or a format.
+
+The effect is local: examples condition the model for this call only, and nothing is learned permanently. In the Chat API they appear as sample user and assistant turns after the system message. Choose examples that show edge cases, and note that their order can matter.
+
+Few-shot examples improve consistency of format, vocabulary and style, but they do not guarantee schema validity or factual correctness. For a guaranteed shape, add Structured Outputs.
+
+Fine-tuning is different: it changes model behavior with training data, has training and hosting costs, and must be repeated when the base model changes. It is the last rung of the improvement ladder: prompt, ground, better model, then fine-tune.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: prompt-engineering-parameters-and-reflection, model-and-service-selection
+
+=== D2 single
+Q: A retrieval-heavy prompt is hitting the context limit. The retrieved data is a list of product attributes for 40 items. Which space-saving tip from the guidance fits best?
++ Present tabular data compactly, for example as a table, and trim retrieved context to what matters :: Tables are compact for tabular data, and prompts compete for the context window.
+- Add many consecutive spaces to align columns :: Consecutive spaces cost tokens.
+- Spell every number in words :: This can use more tokens, not fewer.
+- Duplicate the data at the start and at the end :: This doubles the token use.
+CONCEPT: A model has a context window, and everything in the prompt competes for it: instructions, examples, retrieved context, conversation history and the answer (for reasoning models, also hidden reasoning). Tokens cost money and add latency, so space efficiency matters.
+
+Learn's tips: tables are compact for tabular data; consecutive spaces cost tokens; spelling out a month can use fewer tokens than a fully numeric date; and trimming retrieved context to what matters helps most. For retrieval, keep the best few chunks that fit a token budget instead of everything.
+
+When tokens per minute becomes the bottleneck, shrink the prompt first (shorter system prompt, fewer or smaller chunks, a summary of old turns) before asking for more quota or moving to provisioned capacity. Check the split between input and output tokens with metrics.
+
+Prompt caching also lowers cost if the stable prefix is at least 1,024 tokens.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering, https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/prompt-caching
+REF: prompt-engineering-parameters-and-reflection, capacity-cost-and-throttling
+
+=== D2 single
+Q: A team builds a GenAI app and wants to evaluate it at three points: when choosing a base model, before release with their own dataset and red teaming, and after release on real traffic. Which assignment of tools to stages is correct?
++ Benchmarks for model selection; own-dataset evaluators plus the AI red teaming agent before release; continuous and scheduled evaluation with alerts after release :: This matches the three evaluation stages.
+- Continuous evaluation for model selection and benchmarks after release :: The stages are reversed.
+- Only manual testing at every stage :: Automated, repeatable evaluation is the recommended approach.
+- Alerts for model selection and red teaming after release only :: Red teaming should also happen before release.
+CONCEPT: Evaluation changes purpose across the lifecycle. Stage 1, base model selection, asks which model fits: use Foundry benchmarks on public data or your own data, and the Evaluation SDK on a model endpoint. Stage 2, pre-production, asks whether it is ready to ship: use your dataset with quality, safety and custom evaluators, the AI red teaming agent for attacks, and edge-case tests. Stage 3, post-production, asks whether it is still good: use continuous evaluation of sampled production traffic, scheduled evaluation with a test set to detect drift, scheduled red teaming and Azure Monitor alerts.
+
+Evaluators detect fabrications (groundedness), relevance, quality (coherence, fluency) and safety. Evaluation results can be analyzed with cluster analysis to group failures.
+
+Remember that evaluations in the agent playground are on by default and billed.
+
+Run the evaluation again after every meaningful change to catch regressions before users do.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/concepts/observability, https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators
+REF: observability-and-agent-lifecycle
+
+=== D3 single
+Q: A moderation pipeline sends a meme image that contains overlaid text to a multimodal model, and then uses Content Safety to classify the combined content. Which severity scale does the service return for an image with text from a multimodal model?
++ The full 0 to 7 scale (it can be trimmed on request) :: Image with text from a multimodal model uses the full scale.
+- Only 0, 2, 4, 6 :: That is the trimmed scale returned for image-only content.
+- Only safe or unsafe :: The service returns severity levels.
+- Only 0 to 3 :: This range is not documented.
+CONCEPT: Content Safety returns severity values for each of four categories: hate and fairness, sexual, violence and self-harm. The scale depends on content type. Text returns the full 0 to 7 (it can be trimmed to 0, 2, 4, 6 on request). Image-only content returns the trimmed scale of 0, 2, 4, 6. Image with text from a multimodal model returns the full 0 to 7 (trimmed on request).
+
+Guardrails present four levels (safe, low, medium and high). A threshold you set on a control flags content at that level and above. Content at the safe level is annotated but never filtered.
+
+When you design thresholds, apply filters on both sides: the prompt going in and the media coming out. Treat a "safe" annotation as a statement about harm categories only, not about brand or policy rules.
+
+Test the thresholds with real and adversarial examples, and adjust by category.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/harm-categories, https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview
+REF: responsible-ai-for-multimodal-content, responsible-ai-governance
+
+=== D3 single
+Q: A weekly pipeline generates 1,000 marketing images. Filters block 2% of them; automated brand checks then fail 8% of the remaining images; reviewers reject another 5% of what remains after that. Each stage applies to the images left by the previous stage. About how many images are published?
++ About 857 :: 1,000 x 0.98 = 980; 980 x 0.92 = 901.6; 901.6 x 0.95 = 856.5, so about 857.
+- 850 :: This subtracts the percentages from 1,000 instead of applying them in sequence.
+- 902 :: This stops after the brand check and ignores the reviewers.
+- 980 :: This counts only the safety filter.
+CONCEPT: Rejections in a review workflow compound, because each stage works on what the previous one let through. The workflow steps are: filter the prompt, generate, filter the output, run automated checks (brand rules, quality, forbidden content), human approval for public assets, attach provenance and label, publish and monitor, and learn from rejects.
+
+Calculation: 1,000 images. Safety filters block 2%, leaving 980. Brand checks fail 8% of those, leaving 980 x 0.92 = 901.6. Reviewers reject 5% of those, leaving 901.6 x 0.95 = 856.5, so about 857 are published and about 143 (roughly 14%) never reach the public.
+
+The cost model must count the unpublished images, because they were paid for, and the team should study the top rejection reasons to improve prompts.
+
+Keep prompts, parameters and model versions with each asset, and keep the original with its Content Credentials as the system of record.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/content-safety/provenance-disclosure, https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e
+REF: responsible-ai-for-multimodal-content, image-and-video-generation
+
+=== D3 single
+Q: A team plans a new image generation feature and wants models that are generally available. According to the model table, which statement is correct?
++ `gpt-image-2`, `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare` are GA, while `gpt-image-1.5`, `gpt-image-1` and `gpt-image-1-mini` are limited access :: GA models are preferred for production.
+- `dall-e-3` is the GA default and is recommended for new projects :: It was retired on March 4, 2026 and existing deployments no longer work.
+- All gpt-image models are retired :: Several are GA and others are limited access.
+- Only Preview models can generate images :: GA models exist.
+CONCEPT: Model lifecycle goes Preview, GA, Deprecated and Retired. A retired model stops working: for example `dall-e-3` was retired on March 4, 2026, and deployments of it no longer work. A project that still targets it must migrate.
+
+For image generation today, `gpt-image-2` and the Sunburst and Flare variants of `gpt-image-2.5` are GA, and `gpt-image-1.5`, `gpt-image-1` and `gpt-image-1-mini` are limited access. Quality values differ by family: GPT-Image-2 supports low, medium and high, while Sunburst and Flare also add xhigh and max, and the size rules also differ.
+
+Exam guidance prefers GA features and wants Preview or limited-access options clearly marked. Before relying on a specific model, check the current model table, since lifecycle status changes.
+
+Pin versions, subscribe to deprecation notices and plan replacements before retirement dates.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/dall-e, https://learn.microsoft.com/en-us/azure/foundry/concepts/foundry-models-overview
+REF: image-and-video-generation, model-and-service-selection
+
+=== D3 single
+Q: A product team must analyze images of delivery packages, and the instructions about what to look for change every week as new damage types appear. The volume is low, and each question is different. Which tool fits better?
++ A vision-capable chat model with a prompt that is easy to edit :: One-off, open or often-changing questions suit a prompt-driven model.
+- A Content Understanding custom analyzer with a fixed field schema :: A schema is best when the same typed fields are needed from many images and instructions rarely change.
+- Azure Translator :: It translates text and does not analyze images.
+- An embedding model only :: It produces vectors and does not describe damage.
+CONCEPT: Two tools analyze images. A vision-capable chat model accepts images as part of a message and answers in text. It is flexible and prompt-driven. A Content Understanding image analyzer is a reusable configuration with a field schema, so every image returns the same typed fields, with options for confidence.
+
+The comparison: for a one-off, open question, a chat model is best and an analyzer is overkill. For the same fields from 100,000 images, an analyzer is best because a chat model can drift. For typed JSON with confidence, an analyzer has it built in, while a chat model needs extra prompting. For instructions that change often, a chat model is easy (edit the prompt), while an analyzer needs an update.
+
+In this scenario, changing instructions and low volume point to the chat model. Once the damage types stabilize and volume grows, an analyzer becomes attractive.
+
+Always tell the model to describe only what is visible and to say when something is not visible.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/gpt-with-vision, https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/image/overview
+REF: multimodal-understanding
+
+=== D3 single
+Q: A publisher wants captions and metadata for a large photo archive, optimized for use in a retrieval index, without designing a custom schema. Which Content Understanding analyzer is intended for this?
++ `prebuilt-imageSearch`, which produces descriptions for retrieval :: It is the RAG-oriented analyzer for images.
+- `prebuilt-videoSearch` :: It is for video and produces per-segment records.
+- `prebuilt-invoice` :: It is a domain analyzer for invoices.
+- `prebuilt-audio` :: It is a base analyzer for audio.
+CONCEPT: Content Understanding provides prebuilt analyzers in four groups. Base analyzers (`prebuilt-document`, `prebuilt-audio`, `prebuilt-video`, `prebuilt-image`) are starting points for custom analyzers. RAG analyzers (`prebuilt-documentSearch`, `prebuilt-videoSearch` and the image equivalent `prebuilt-imageSearch`) produce Markdown and descriptions optimized for retrieval. Domain-specific analyzers (`prebuilt-invoice`, `prebuilt-receipt`, `prebuilt-idDocument`) cover common business documents. Custom analyzers extend a base with your own field schema.
+
+For a photo archive that will feed search or RAG, the image search analyzer gives descriptions that can be embedded and indexed. If the team later needs the same typed fields from every image (for example product type and damage), they would create a custom analyzer based on `prebuilt-image`.
+
+Image analyzers are not optimized for text-primary content; pages of text should go to a document analyzer.
+
+Choose the narrowest prebuilt analyzer first.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/prebuilt-analyzers, https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/image/overview
+REF: multimodal-understanding, content-understanding-and-document-intelligence
+
+=== D3 single
+Q: A Content Understanding video analyzer is used to build a subtitle file and a speaker-labeled transcript. In which form does the transcript appear in the output?
++ As WEBVTT in the Markdown output, with speaker diarization and multilingual support :: The transcript, key frames and shot data come from the content extraction stage.
+- As a PDF file attached to the response :: It is returned in Markdown and JSON.
+- As a separate invoice-like JSON schema that you must define :: The transcript is part of the extracted content.
+- Only as a list of music tracks and sound effects :: Only speech is transcribed.
+CONCEPT: In the first stage of Content Understanding video processing, content extraction, the analyzer produces the raw material: a transcript with speaker diarization and multilingual support, key frames, and shot detection (shot boundaries are returned with `returnDetails: true`). The transcript appears as WEBVTT in the Markdown output. Only speech is transcribed, not music or sound effects.
+
+The second stage adds field extraction (your `fieldSchema` fields with `generate` or `classify` methods) and segmentation (`enableSegment` with a category description). The output is Markdown (transcript and key frames) plus JSON (descriptions, segment boundaries, fields).
+
+WEBVTT is a subtitle format, which makes the transcript easy to align with video time. Set the locales where applicable to improve quality.
+
+Limits: about one frame per second is sampled, and frames are resized to 512x512.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/video/overview
+REF: multimodal-understanding
+
+=== D3 single
+Q: A newsroom runs an uploaded image through Content Provenance Detection. The image shows a Microsoft invisible watermark signal, but no Content Credentials (C2PA) metadata. How should the result be interpreted?
++ The watermark supports the claim that the content was produced by the system, and the missing metadata likely means it was lost in editing or conversion :: A present signal supports AI generation; metadata is often stripped by tools.
+- The image is definitely authentic and human-made because C2PA is missing :: An absent signal proves nothing.
+- The image must be rejected because both signals must always be present :: Either signal may be present alone.
+- Provenance proves who wrote the prompt and who owns the copyright :: Provenance does not prove authorship.
+CONCEPT: Foundry uses two provenance technologies for supported models. Content Credentials (C2PA) is signed metadata attached to the file; recipients can verify it was not altered. An invisible watermark is an imperceptible signal inside the content; it can survive when metadata is removed, though verifying it may need specialized tools.
+
+Interpretation rules: a present signal supports "AI-generated by this system"; an absent signal proves nothing; provenance does not decide trustworthiness or prove authorship; and signals may not survive cropping, resizing, filters, format conversion, transcoding or compression.
+
+Here the watermark is present and the metadata is gone. That is a typical outcome for an image resized by a tool that strips metadata. The correct reading is "metadata lost in the workflow", not "not AI-generated".
+
+Check files with the Content Provenance Detection website or API, keep originals with their credentials, and use tools that preserve credentials.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/content-safety/provenance-disclosure
+REF: responsible-ai-for-multimodal-content
+
+=== D4 single
+Q: A manager uploads a 3-hour meeting recording and wants the transcript immediately in one synchronous call. Which statement about fast transcription is correct?
++ Fast transcription is for files under about 2 hours and 300 MB, so a 3-hour recording should use batch transcription :: The file exceeds the limit.
+- Fast transcription accepts files of any length :: It has limits on duration and size.
+- Real-time transcription is the only option for files :: Batch and fast are file-based modes.
+- Text to speech converts the recording into text :: Text to speech does the opposite direction.
+CONCEPT: Speech to text has four routes. Real-time (SDK, CLI or REST short audio) gives interim and final results as speech is heard, for live captions and voice commands. Fast transcription is synchronous for one file when you want the result now; it is meant for files under about 2 hours and 300 MB. Batch transcription is an asynchronous REST job for many or long files, with results written to storage and optional webhooks. Custom speech improves accuracy for any of them.
+
+A 3-hour file is over the fast transcription limit, so batch is the route. Submit a job with options such as diarization (mono audio needed for 3 or more speakers, up to 35), poll or use a webhook, then read the result files with text, timestamps and speaker labels.
+
+Remember the result time-to-live between 6 hours and 31 days.
+
+Decide with three questions: live or recorded? result needed now? how many files, and how long?
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/overview, https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription-create
+REF: speech-solutions
+
+=== D4 multi
+Q: A conference app uses live speech translation and a custom speech model for the speakers' technical vocabulary. Which TWO statements are correct?
++ A custom speech model can be used with real-time speech to text, speech translation and batch transcription :: Custom models are not limited to one mode.
++ The Speech service translates directly into two target languages; more targets need a Foundry (multi-service) resource, with translation fees beyond the second :: This is the documented target limit.
+- Custom speech models cannot be combined with speech translation :: They can be used with speech translation.
+- Speech translation only produces text and never synthesized speech :: Final results can be synthesized, giving speech-to-speech translation.
+- The standard API detects the spoken language continuously and needs no input language :: That describes Live Interpreter; the standard API needs a source language.
+CONCEPT: Speech translation translates live audio. Speech to text and speech to speech translation work through the Speech SDK or CLI. Interim results arrive while speech continues, and final results can be synthesized. In the standard API you set the source language and the target languages. Live Interpreter detects the spoken language continuously, switches languages mid-session and supports bring-your-own personal voice.
+
+Targets: the Speech service translates into two target languages directly. For more, use a Foundry (multi-service) resource; translation fees then apply for each language beyond the second.
+
+Custom speech improves recognition of your vocabulary and conditions. A custom model works for real-time speech to text, speech translation and batch. Measure with word error rate before you train.
+
+For documents or text, use Translator rather than Speech.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-translation, https://learn.microsoft.com/en-us/azure/ai-services/speech-service/custom-speech-overview
+REF: speech-solutions
+
+=== D4 single
+Q: A localization tool receives Serbian text written in Cyrillic and needs to show the same words in Latin script, without translating them into another language. Which Translator operation does this?
++ Transliterate :: It converts text from one script to another, for example Cyrillic to Latin.
+- Translate :: It changes the language of the text.
+- Languages :: It lists supported languages and needs no authentication.
+- Document translation :: It translates whole files and preserves layout.
+CONCEPT: Translator's text translation API has three operations in version `2026-06-06`. Languages lists supported languages and needs no authentication. Translate takes a single POST with one or more target languages and returns translations. Transliterate converts script without changing the language, for example Cyrillic to Latin.
+
+This difference matters. Translation maps meaning from one language to another. Transliteration maps characters from one writing system to another, so a person who reads Latin letters can pronounce Cyrillic words.
+
+The latest GA version `2026-06-06` changed the request and response shape: the request array is `inputs`, and the response array is `value`. Translate can use standard neural machine translation or a supported LLM deployment (which needs a Foundry resource), with tone and gender controls for LLM translation.
+
+Choose the operation by the output you want: another language, another script, or a list.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/overview
+REF: translation
+
+=== D4 single
+Q: A team trains a Custom Translator system and gets a BLEU score of 41. A colleague reports 38 from another system on a different test set and concludes the first system is better. What is wrong with this comparison?
++ BLEU should be compared only on the same test set; scores from different sets are not comparable :: BLEU compares output with a human reference, so the reference set must be the same.
+- BLEU scores below 50 are always invalid :: There is no such rule.
+- BLEU measures speech recognition errors :: That is word error rate for speech, not BLEU.
+- A higher BLEU score always means a lower cost :: BLEU measures translation quality against references, not cost.
+CONCEPT: Custom Translator trains a custom neural machine translation (NMT) system in its own portal. The steps are: create a workspace and project, upload parallel documents (and dictionaries), train, review the BLEU score, publish, and call text translation with the custom model identifier. Accepted file types include ALIGN, PDF, LCL, HTML, XLF, TMX, TXT, DOCX and XLSX. With the right data, gains of 5 to 10 BLEU points are common, and dictionary-only training is possible when no parallel data exists.
+
+BLEU compares machine output with a human reference translation. Higher is better, but a score is only meaningful against the same test set. Two scores from two different sets cannot be ranked.
+
+Compare options by their purpose. A glossary applies fixed term mappings in a document translation job. Adaptive custom translation adapts an LLM with 5 to 10,000 aligned pairs. Custom Translator suits a large parallel corpus in a stable domain.
+
+Do not confuse BLEU (translation) with word error rate (speech recognition).
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/custom-translator/overview
+REF: translation
+
+=== D4 single
+Q: A batch document translation job must always translate a company name unchanged and use approved terms for 200 product phrases. Which input and format provide this?
++ A glossary file in CSV, XLIFF or TSV format supplied with the document translation job :: Glossaries apply fixed term mappings during translation.
+- A Speech custom endpoint :: It affects speech recognition, not document translation.
+- A BLEU score report :: It evaluates quality after training; it does not enforce terms.
+- A text-to-speech lexicon :: Lexicons control pronunciation in speech synthesis.
+CONCEPT: Customization options for translation differ in effort and power. A glossary is a list of fixed term mappings applied to a document translation job, supplied as CSV, XLIFF or TSV; it is ideal for product names and approved terms. Adaptive custom translation adapts an LLM using a small bilingual set (5 to 10,000 aligned pairs of up to 500 characters each) in minutes. Custom Translator trains a custom NMT system from a large parallel corpus in a stable domain.
+
+For this scenario, 200 phrases and a company name that must not change are exactly what a glossary is for.
+
+Batch document translation uses blob containers, access through SAS tokens or managed identity (identity is preferred), and glossary files. Layout and format are preserved, and scanned PDFs go through OCR. Content is processed in the region of the Translator resource.
+
+Pick the lightest option that meets the need.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/document-translation/overview, https://learn.microsoft.com/en-us/azure/ai-services/translator/custom-translator/overview
+REF: translation
+
+=== D4 multi
+Q: A team builds an LLM-powered translation flow for product descriptions that contain placeholders such as `{order_id}` and prices. Which TWO steps follow the recommended flow?
++ Check the output for intact placeholders, numbers, glossary hits and length before using it :: Automated checks catch broken placeholders and number changes.
++ Cache translations by source hash so unchanged text is not re-translated :: This saves cost and keeps stable output.
+- Skip all checks, because LLM output never changes placeholders :: Models can alter or drop placeholders.
+- Set a high temperature to make wording more varied :: Translation needs a low temperature and consistent output.
+- Send high-risk legal text to production without any human review :: High-risk content should be reviewed by a person.
+CONCEPT: An LLM translation flow has six steps. Detect the source language (Translator or Language detection). Build the prompt: target language, tone, audience, glossary and a "do not translate" list. Call the model with a low temperature, and request structured output when segments must align. Check the result: placeholders, numbers, glossary hits and length. Review high-risk content with a person. Cache by source hash so unchanged text is not re-translated.
+
+The check step is where most production bugs are caught. A model may rewrite `{order_id}`, change a price format or drop a sentence. Automated tests compare placeholders and numbers between source and target.
+
+Use Translator's text translation API when you need scale, glossaries and predictable cost; use an LLM when tone, context or adaptive behavior matters. In the `2026-06-06` API, LLM translation has tone and gender controls and accepts up to 50 elements per request.
+
+Keep high-volume baseline traffic on neural machine translation.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/translator/text-translation/overview
+REF: translation
+
+=== D4 single
+Q: A compliance team wants an LLM to summarize regulatory filings for auditors, with every statement tied to a clause number, and unclear passages flagged rather than guessed. Which design follows the guidance for customizing language model outputs for domain tasks?
++ Define a structured output schema with fields for summary, clause references and an `unknown` or flag value, use a low temperature, require citations, and review high-risk output with a person :: This constrains the shape, reduces invention and keeps accountability.
+- Ask for a free-form creative summary at a high temperature :: This increases invention and inconsistent format.
+- Summarize without citations to keep the text short :: Citations make verification possible.
+- Run the model with no evaluation because compliance text is formal :: Evaluation on labeled samples is still required.
+CONCEPT: Customizing language model output for a domain task, such as compliance summarization or domain extraction, uses the same building blocks. First define the output schema: for example `summary`, `clauses` (with numbers) and `flags`. Write the prompt with the role, the task, the definition of each label, a few examples and an "out" such as `unknown` for unclear text. Constrain the output with Structured Outputs so the application can parse it. Set a low temperature for consistent results. Ask for inline citations, which force two errors for an invention (a false statement and a false citation) and make checking easy. Evaluate on a labeled sample and compare against a baseline. Treat the analyzed text as untrusted, because it may contain instructions.
+
+Add a human review for high-risk output, and run PII detection or redaction first when the text includes personal data.
+
+For narrow, high-volume, fixed tasks, a Language feature may be cheaper, but nuance and long context favor an LLM.
+SRC: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/structured-outputs, https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/prompt-engineering
+REF: text-analysis-language-and-llms, prompt-engineering-parameters-and-reflection
+
+=== D5 single
+Q: A team asks which sources a search indexer can read from without using preview features. Which list contains only data sources the guidance names as generally supported?
++ Blob Storage, ADLS Gen2, Cosmos DB, Azure SQL, Table Storage and OneLake :: These are listed as supported sources; SharePoint, Azure Files and MySQL are previews.
+- SharePoint, Azure Files and MySQL :: These are listed as previews.
+- A local laptop folder and a USB drive :: Indexers pull from supported Azure data sources, not from local devices.
+- Any website, scraped automatically :: A web crawler is not an indexer data source.
+CONCEPT: An indexer connects four objects. The data source is the connection to the origin: Blob, ADLS Gen2, Cosmos DB, SQL, Table and OneLake are generally supported, while sources such as SharePoint, Azure Files and MySQL appear as previews. The index is the destination schema, which you create yourself. The skillset is optional enrichment. The indexer is the crawler that connects the three and runs on demand or on a schedule, as often as every five minutes.
+
+One indexer uses one data source and writes to one index; many indexers can write to the same index.
+
+When a source is not supported, or you need updates faster than every five minutes, use push indexing: your code sends JSON documents to the index through the SDK or REST API.
+
+Prefer GA features for production and mark preview ones clearly.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-indexer-overview
+REF: azure-ai-search-configuration
+
+=== D5 multi
+Q: An indexer must run the OCR skill on images embedded in PDFs. Which TWO statements about the configuration are correct?
++ Set `imageAction` to `generateNormalizedImages` so that the skill receives `/document/normalized_images/*` :: Document cracking must hand the images to the skill.
++ The skill is bound to Foundry Tools and needs a billable resource beyond 20 documents per indexer per day :: Larger workloads require a billable resource.
+- The OCR skill returns audio transcripts for MP3 files :: There is no built-in audio-to-text skill.
+- The skill needs no extra setting and reads images even when `imageAction` is off :: Image extraction must be enabled in the indexer.
+- OCR output is merged into the document content automatically without any skill :: A Merge skill puts OCR text back into the content at the right position.
+CONCEPT: A scanned PDF has no text layer, so text must be read from page images. In an Azure AI Search skillset the OCR skill (`#Microsoft.Skills.Vision.OcrSkill`) reads printed and handwritten text from `.jpeg`, `.jpg`, `.png`, `.bmp` and `.tiff` files and from images embedded in PDFs or Office files.
+
+To make it work, the indexer needs `imageAction: generateNormalizedImages` so document cracking passes images to the skill as `/document/normalized_images/*`. The skill outputs `text` and `layoutText` (lines, words and bounding boxes). Use a Merge skill to place OCR text back into the document text at the right position. Optional parameters are `defaultLanguageCode` and `lineEnding`; `detectOrientation` applies only to the legacy OCR v3.2 path.
+
+The skill is bound to Foundry Tools and needs a billable resource beyond 20 documents per indexer per day.
+
+There is no built-in skill for audio; use a custom Web API skill that calls a speech service.
+SRC: https://learn.microsoft.com/en-us/azure/search/cognitive-search-skill-ocr, https://learn.microsoft.com/en-us/azure/search/cognitive-search-concept-intro
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A security auditor asks for a report of which end user ran which search query on an Azure AI Search service, using the built-in resource logs. What should the team know?
++ Resource logs record operations and query text but not the user identity, so log the user in your application if you need it :: Search logs cannot attribute queries to end users.
+- Resource logs identify the end user of every query automatically :: They do not contain user identity.
+- Search stores a full copy of each user's profile in the logs :: This is not how logs work.
+- Auditing is impossible, and queries cannot be logged :: Operations and query text are recorded.
+CONCEPT: Azure AI Search has built-in protections you do not configure: TLS 1.2 or 1.3 on port 443, 256-bit AES encryption at rest, Microsoft backbone traffic and compliance certifications. Same-region Storage traffic uses private IPs, so you cannot add a storage firewall for it. Microsoft does not use your data to train models.
+
+You configure: network access (IP firewall, private endpoint), authentication (prefer Microsoft Entra ID with role-based access control over keys), indexer connections with managed identity, document-level permissions, monitoring, optional customer-managed keys as a second encryption layer, and confidential computing in limited regions.
+
+Monitoring has a limit: resource logs record operations and query text but not the user identity. If an audit needs "who asked what", the calling application must log the user together with the query, with suitable privacy controls.
+
+Do not put sensitive text in object names.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-security-built-in
+REF: azure-ai-search-configuration
+
+=== D5 single
+Q: A company must keep all data in the EU. Its search indexer uses a knowledge store, an enrichment cache and debug sessions, whose Storage account is currently in another region. What is the correct statement about data residency?
++ Data stays in the chosen geography unless you write to Storage in another region, as the knowledge store, enrichment cache and debug sessions do; place that Storage account in the EU too :: These features write to Storage you choose.
+- Search always copies data to the United States for debugging :: Data stays in the chosen geography unless Storage elsewhere is used.
+- Residency cannot be affected by any setting :: Storage location for these features does matter.
+- Only the semantic ranker stores data outside the region :: The relevant features are knowledge store, cache and debug sessions.
+CONCEPT: Azure AI Search keeps data in the geography where you create the service. Several optional features write to a Storage account that you choose: the knowledge store (enriched data in blobs or tables for analytics), the enrichment cache (preview, reused skill outputs), and debug sessions (the enriched tree for inspection).
+
+If that Storage account is in another region, data crosses the boundary. For a residency requirement, put the Storage account in the same geography (here, the EU) and check the rest of the pipeline: the Foundry resource used for skills, the embedding model deployment and the deployment type (use a regional or Data Zone type if processing location matters).
+
+Also do not put sensitive text in object names, and prefer managed identities for connections.
+
+Residency is a property of the whole path of the data, not of one service.
+SRC: https://learn.microsoft.com/en-us/azure/search/search-security-built-in, https://learn.microsoft.com/en-us/azure/search/cognitive-search-concept-intro
+REF: azure-ai-search-configuration, capacity-cost-and-throttling
+
+=== D5 single
+Q: A Content Understanding classifier for scanned loan packets uses categories that point to other classifier analyzers, to form a tree. The team asks how deep a hierarchy can be and how many categories one classifier can have. What are the documented limits?
++ Up to five nesting levels for documents and two for video, and up to 200 categories :: These are the documented limits.
+- Unlimited levels and unlimited categories :: Limits exist.
+- One level only and 5 categories :: These numbers are too low.
+- Ten levels for video and 20 categories for documents :: Video is limited to two levels.
+CONCEPT: Content Understanding can classify and split content inside the same analyze call. You define `contentCategories`, each with a description, and `enableSegment: true` when one file contains several documents (a loan package holding an application, a pay slip and a bank statement). No training data is needed.
+
+Modes: classify only (the whole file gets one category); classify and analyze (each category can name an `analyzerId`, which is linked, not copied, to run extraction); classify and segment (finds multiple documents in one file, with a page as the minimum unit; in-page segmentation is preview); and hierarchical (categories point to classifier analyzers).
+
+Limits: up to five nesting levels for documents and two for video, up to 200 categories. Video supports segmentation only, with a single content category. Include an `other` category so unrelated pages are not forced into a listed one.
+
+Check results on labeled samples and look at confidence.
+SRC: https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/concepts/classifier
+REF: content-understanding-and-document-intelligence
+
+=== D5 single
+Q: A team plans a skillset for a document library with OCR on images, language detection, chunking and embeddings. Finance asks which of these built-in steps does not need a billable Foundry resource. Which one is free?
++ The Text Split skill, which chunks text :: Chunking with Text Split is free, while skills that use Foundry Tools need a billable resource for larger workloads.
+- The OCR skill :: It is bound to Foundry Tools and needs a billable resource beyond 20 documents per indexer per day.
+- The language detection skill :: It uses Foundry Tools and is billed beyond the free allowance.
+- The Azure OpenAI embedding skill :: Embeddings are billed as model tokens on your deployment.
+CONCEPT: Skills come in two kinds. Built-in skills use Foundry Tools: OCR, image analysis, language detection, translation, entity recognition, key phrases, PII detection and sentiment, plus the Azure OpenAI embedding skill, Azure Vision multimodal embeddings (preview) and the Content Understanding skill. Larger workloads need a billable Foundry resource attached to the skillset. Custom skills are your own code behind a web API.
+
+The Text Split skill is the exception in cost terms: chunking is free, because it is processed inside the search service without calling a model. It has two modes, `pages` and `sentences`, with suggested defaults of 2000 characters and 500 overlap.
+
+Costs to plan: OCR beyond 20 documents per indexer per day, enrichment skills on every document, embedding tokens for every chunk (overlap increases the number of chunks), and Azure AI Search itself.
+
+The enrichment cache (preview) can reduce repeated skill costs when you change later steps.
+SRC: https://learn.microsoft.com/en-us/azure/search/cognitive-search-concept-intro, https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents
+REF: azure-ai-search-configuration

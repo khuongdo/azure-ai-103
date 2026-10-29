@@ -30,6 +30,16 @@ The real AI-103 questions are confidential and must never be copied or reconstru
 
 Say this clearly to the user when reporting. Do not claim the questions are real exam questions.
 
+## Researching recent sample questions (when the user asks for it)
+
+When the user asks for tests "based on recent sample exams", do this before writing:
+
+1. **Official first.** Microsoft's official Practice Assessment lives on AI Skills Navigator and **needs a sign-in**, so it cannot be fetched. The exam sandbox only shows the UI. Say this to the user instead of pretending to have official questions.
+2. **Third-party samples** (search "AI-103 practice questions", open the free-sample pages of reputable banks): read them only to learn the **style**: stem length, number of options, topics, distractor type. Never copy their question text or answer keys, and never use "dumps" sites (they are exam-policy violations and often wrong).
+3. **Write original questions** with the same style and topics, grounded in the deep dives. Record in the test `@description` that the tests are modeled on the public skills outline, not on real exam content.
+4. **Coverage matrix.** Fetch the current skills list (https://aka.ms/AI103-StudyGuide redirects to learn.microsoft.com/credentials/certifications/resources/study-guides/ai-103; `docs/official/skills-measured.md` is gitignored and may be missing). Map every "skills measured" bullet to at least one question across the new tests; aim for more than 90% of bullets covered, and list the uncovered ones in the report. Check the existing tests first (`grep -E '^(=== |Q: )' tools/mock-exams/mock-*.txt`) so new questions use new angles instead of repeating a scenario.
+5. If five tests are not enough to cover the matrix, add more tests (the build script accepts any `mock-N.txt`).
+
 ## Blueprint (do not change without asking)
 
 Every test has **50 questions** with this mix, which sits inside the official weight ranges:
@@ -46,7 +56,7 @@ Default timer 120 minutes. If the study guide weights change, update `DOMAINS` i
 
 ## Workflow
 
-1. **Choose the scope.** For a new test, take the next number (`mock-6.txt`). List which lessons in `docs/study/deep-dives/` each question will cover, and compare with the existing tests so topics are spread and the same scenario is not reused. Read the lessons before writing: every fact in a question must be supported by a deep dive or the Learn page it cites.
+1. **Choose the scope.** For a new test, take the next number (the highest existing `mock-N.txt` plus one). List which lessons in `docs/study/deep-dives/` each question will cover, and compare with the existing tests so topics are spread and the same scenario is not reused. Read the lessons before writing: every fact in a question must be supported by a deep dive or the Learn page it cites.
 2. **Write `tools/mock-exams/mock-N.txt`** in the format below. Write questions domain by domain so the counts are easy to hit.
 3. **Build and validate**: `python3 tools/mock-exams/build_mock_exams.py` (all tests) or `... mock-N`. The script fails with a list of problems; fix them all. It also prints the positions of the correct options, which should be roughly even across A to D.
 4. **Test the page** in a browser (Playwright is installed): open `docs/study/practice-tests/mock-exam-N-view.html`, start, answer, grade, open the review. Check there are no console errors, and that the "Concept behind this question" block appears after **Check answer** in practice mode and in the review.
