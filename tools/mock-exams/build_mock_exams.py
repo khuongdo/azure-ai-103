@@ -236,6 +236,57 @@ How the test works, and how it was built, is explained on the [mock exams overvi
 """
 
 
+BANK_PAGE = """---
+domain: {domain_name} (question bank)
+skill: All mock exam questions of one exam domain, gathered in one interactive set
+sources:
+  - https://aka.ms/AI103-StudyGuide
+  - https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-apps-and-agents-developer-associate/
+retrieved: {today}
+---
+
+# Question bank: {domain_name}
+
+{count} scenario questions for this domain ({weight} of the exam), collected from mock exams 1 to {last}. They are shuffled, so topics are mixed. Use **Practice mode** to learn (check each answer, read the concept block), or **Exam mode** to measure yourself on one domain.
+
+<iframe src="../{view}" title="Question bank: {domain_name}" style="width:100%;height:85vh;border:1px solid var(--md-default-fg-color--lightest);border-radius:6px"></iframe>
+
+[Open full screen]({view}){{ target=_blank }}
+
+## Where to study the topics behind these questions
+
+{lessons}
+
+Back to the [question bank overview](question-bank.md).
+"""
+
+
+def build_banks(parsed: dict, today: str) -> None:
+    """Gather the questions of each domain from every mock exam into one interactive question bank per domain."""
+    names = sorted(parsed, key=lambda n: int(n.split("-")[1]))
+    payloads = [build_json(parsed[n], n) for n in names]
+    for d in DOMAINS:
+        qs = [q for p in payloads for q in p["questions"] if q["d"] == d["id"]]
+        random.Random(f"bank-{d['id']}").shuffle(qs)
+        bank_id = f"bank-d{d['id']}"
+        title = f"Question bank: {d['name']}"
+        payload = {
+            "id": bank_id, "title": title, "shortTitle": f"Domain {d['id']} bank",
+            "description": f"{len(qs)} questions from mock exams 1 to {len(names)}, all in the domain \"{d['name']}\" ({d['weight']} of the exam).",
+            "defaultMinutes": round(len(qs) * 120 / 50),
+            "domains": [{**d, "count": len(qs)}], "questions": qs,
+        }
+        text = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+        view = f"question-bank-d{d['id']}-view.html"
+        (OUT_DIR / view).write_text(HTML.format(title=title, payload=text), encoding="utf-8")
+        refs = sorted({r for q in qs for r in q["ref"]})
+        lessons = "\n".join(f"- [{r.replace('-', ' ').capitalize()}](../deep-dives/{r}.md)" for r in refs)
+        page = BANK_PAGE.format(domain_name=d["name"], today=today, count=len(qs), weight=d["weight"],
+                                last=len(names), view=view, lessons=lessons)
+        (OUT_DIR / f"question-bank-d{d['id']}.md").write_text(page, encoding="utf-8")
+        print(f"bank D{d['id']}: {len(qs)} questions -> {view}")
+
+
 def main(argv):
     from datetime import date
 
@@ -278,6 +329,7 @@ def main(argv):
                 if o["c"]:
                     pos[k] += 1
         print(f"{name}: {len(payload['questions'])} questions -> {view}; correct-option positions A..F = {pos}")
+    build_banks(parsed, date.today().isoformat())
 
 
 if __name__ == "__main__":

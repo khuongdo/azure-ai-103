@@ -121,6 +121,13 @@ nav:
       - Mock exam 8: study/practice-tests/mock-exam-8.md
       - Mock exam 9: study/practice-tests/mock-exam-9.md
       - Mock exam 10: study/practice-tests/mock-exam-10.md
+    - Question bank by domain:
+      - Overview: study/practice-tests/question-bank.md
+      - "1. Plan and manage": study/practice-tests/question-bank-d1.md
+      - "2. Generative AI and agents": study/practice-tests/question-bank-d2.md
+      - "3. Computer vision": study/practice-tests/question-bank-d3.md
+      - "4. Text analysis": study/practice-tests/question-bank-d4.md
+      - "5. Information extraction": study/practice-tests/question-bank-d5.md
     - Practice test 1 review: study/practice-tests/practice-test-1-review.md
     - Practice test 2 review: study/practice-tests/practice-test-2-review.md
     - Practice test 4 review: study/practice-tests/practice-test-4-review.md

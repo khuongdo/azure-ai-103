@@ -18,6 +18,7 @@ The questions, options and explanations are written in **English**, because the 
 | `docs/study/practice-tests/mock-exam-engine/engine.js`, `engine.css` | Shared test engine (start screen, exam mode, practice mode, timer, grading, review) |
 | `docs/study/practice-tests/mock-exam-N-view.html` | **Generated** standalone test page. Never edit by hand |
 | `docs/study/practice-tests/mock-exam-N.md` | Page that embeds the test in an iframe (generated once, then editable) |
+| `docs/study/practice-tests/question-bank-dN.md`, `question-bank-dN-view.html` | **Generated** by the same build script: all mock questions of domain N (D1..D5) in one interactive set; overview in `question-bank.md` (hand-written, update counts when tests are added) |
 | `docs/study/practice-tests/index.md` | Overview of all mock exams, how they were built, how they work |
 
 ## Honesty about "based on the real exam"

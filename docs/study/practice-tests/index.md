@@ -31,6 +31,8 @@ This folder has two kinds of material:
 | Mock exam 9 | Responsible AI, security and agent design: safety evaluators, oversight, roles and identities, A2A and MCP, memory, guardrail behavior, prompt components, provenance | [Take it](mock-exam-9.md) |
 | Mock exam 10 | Hard dress rehearsal: calculations (PTU, RRF, chunks, defect rates), multi-step reasoning, ingestion and relevance monitoring, tracing details, Content Understanding operations | [Take it](mock-exam-10.md) |
 
+Want to drill one domain? The [question bank by domain](question-bank.md) regroups all 500 questions into five interactive sets.
+
 No question text is repeated across the ten tests (the build script checks this), so you can take them in any order. Some tests revisit the same topic from a different angle, on purpose. A suggested use: take tests 1, 2 and 6 after finishing the lessons for domains 1 and 2, tests 3, 4, 7 and 8 in the weeks before the exam, tests 9 and 5 when you review weak domains, and test 10 as a dress rehearsal two or three days before the exam. Tests 6 and 8 are good for finding gaps, because they are short and symptom-driven.
 
 ## How the tests were built
