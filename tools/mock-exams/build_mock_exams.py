@@ -257,8 +257,50 @@ retrieved: {today}
 
 {lessons}
 
+{flashcards}
 Back to the [question bank overview](question-bank.md).
 """
+
+QUIZ_DIR = ROOT / "docs" / "study" / "quizzes"
+
+
+def quiz_domains() -> dict:
+    """Map each quiz file to its exam domain by reading the hand-written nav: in mkdocs.yml."""
+    mapping, domain = {}, None
+    for line in (ROOT / "mkdocs.yml").read_text(encoding="utf-8").splitlines():
+        m = re.match(r'^  - "([1-5])\. ', line)
+        if m:
+            domain = int(m.group(1))
+        elif re.match(r"^  - ", line):
+            domain = None
+        q = re.search(r"study/quizzes/([\w-]+)\.md", line)
+        if q and domain:
+            mapping[q.group(1)] = domain
+    return mapping
+
+
+def flashcards_for(domain_id: int) -> tuple:
+    """Return (markdown, count) with the flashcards of every quiz in this domain as collapsible cards."""
+    out, total = [], 0
+    for stem, dom in quiz_domains().items():
+        if dom != domain_id:
+            continue
+        text = (QUIZ_DIR / f"{stem}.md").read_text(encoding="utf-8")
+        title = re.search(r"^# Quiz: (.+)$", text, re.M)
+        block = re.search(r"^## Flashcards\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        if not block:
+            continue
+        cards = re.findall(r"\*\*Q:\*\*\s*(.+?)\n\*\*A:\*\*\s*(.+?)(?=\n\n|\Z)", block.group(1), re.S)
+        if not cards:
+            continue
+        label = title.group(1).strip().capitalize() if title else stem
+        out.append(f"### {label}\n\nFrom the [quiz](../quizzes/{stem}.md).\n")
+        for qn, an in cards:
+            qn = qn.strip().replace('"', "&quot;")
+            body = "\n".join("    " + ln for ln in an.strip().splitlines())
+            out.append(f'??? question "{qn}"\n{body}\n')
+        total += len(cards)
+    return "\n".join(out), total
 
 
 def build_banks(parsed: dict, today: str) -> None:
@@ -281,10 +323,12 @@ def build_banks(parsed: dict, today: str) -> None:
         (OUT_DIR / view).write_text(HTML.format(title=title, payload=text), encoding="utf-8")
         refs = sorted({r for q in qs for r in q["ref"]})
         lessons = "\n".join(f"- [{r.replace('-', ' ').capitalize()}](../deep-dives/{r}.md)" for r in refs)
+        cards, ncards = flashcards_for(d["id"])
+        flash = f"## Flashcards ({ncards})\n\nShort recall cards from the topic quizzes of this domain. Read the question, answer in your head, then open the card.\n\n{cards}" if ncards else ""
         page = BANK_PAGE.format(domain_name=d["name"], today=today, count=len(qs), weight=d["weight"],
-                                last=len(names), view=view, lessons=lessons)
+                                last=len(names), view=view, lessons=lessons, flashcards=flash)
         (OUT_DIR / f"question-bank-d{d['id']}.md").write_text(page, encoding="utf-8")
-        print(f"bank D{d['id']}: {len(qs)} questions -> {view}")
+        print(f"bank D{d['id']}: {len(qs)} questions, {ncards} flashcards -> {view}")
 
 
 def main(argv):

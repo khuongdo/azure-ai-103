@@ -9,15 +9,15 @@ retrieved: 2026-11-23
 
 # Question bank by domain
 
-The ten [mock exams](index.md) mix all five domains. This section regroups the same 500 questions **by exam domain**, so you can drill one weak domain at a time. Each bank is an interactive set with the same engine as the mock exams: practice mode, exam mode, timer, grading, and an explanation for every option plus a concept block for every question.
+The ten [mock exams](index.md) mix all five domains. This section regroups the same 500 questions **by exam domain**, so you can drill one weak domain at a time. Each bank is an interactive set with the same engine as the mock exams: practice mode, exam mode, timer, grading, and an explanation for every option plus a concept block for every question. Below each set are the **flashcards** from the topic quizzes of that domain (300 in total), as cards you open one by one.
 
-| Domain | Weight | Questions | Open |
-|---|---|---|---|
-| 1. Plan and manage an Azure AI solution | 25-30% | 140 | [Open bank](question-bank-d1.md) |
-| 2. Implement generative AI and agentic solutions | 30-35% | 160 | [Open bank](question-bank-d2.md) |
-| 3. Implement computer vision solutions | 10-15% | 70 | [Open bank](question-bank-d3.md) |
-| 4. Implement text analysis solutions | 10-15% | 70 | [Open bank](question-bank-d4.md) |
-| 5. Implement information extraction solutions | 10-15% | 60 | [Open bank](question-bank-d5.md) |
+| Domain | Weight | Questions | Flashcards | Open |
+|---|---|---|---|---|
+| 1. Plan and manage an Azure AI solution | 25-30% | 140 | 87 | [Open bank](question-bank-d1.md) |
+| 2. Implement generative AI and agentic solutions | 30-35% | 160 | 90 | [Open bank](question-bank-d2.md) |
+| 3. Implement computer vision solutions | 10-15% | 70 | 39 | [Open bank](question-bank-d3.md) |
+| 4. Implement text analysis solutions | 10-15% | 70 | 47 | [Open bank](question-bank-d4.md) |
+| 5. Implement information extraction solutions | 10-15% | 60 | 37 | [Open bank](question-bank-d5.md) |
 
 ## How to use it
 
