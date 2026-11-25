@@ -137,6 +137,18 @@
       row.appendChild(h('button', { onclick: function () { S = saved; showResults(); } }, 'View last results'));
     }
     cfg.appendChild(row);
+    /* Practice mode has no timer: disable the timer options while it is selected. */
+    function syncTimerOptions() {
+      var practice = cfg.querySelector('input[name="mode"]:checked').value === 'practice';
+      var radios = cfg.querySelectorAll('input[name="time"]');
+      for (var k = 0; k < radios.length; k++) radios[k].disabled = practice;
+      timerBox.style.opacity = practice ? '0.5' : '';
+      notice.style.display = practice ? 'none' : '';
+    }
+    var timerBox = cfg.querySelectorAll('.opt-box')[1];
+    var notice = cfg.querySelector('.notice');
+    var modeRadios = cfg.querySelectorAll('input[name="mode"]');
+    for (var m = 0; m < modeRadios.length; m++) modeRadios[m].addEventListener('change', syncTimerOptions);
     if (best) {
       cfg.appendChild(h('p', { class: 'small muted' }, 'Best score on this device: ' + best.score + ' / ' + best.total +
         ' (' + Math.round(100 * best.score / best.total) + '%).'));
@@ -148,6 +160,7 @@
   function startNew() {
     var mode = document.querySelector('input[name="mode"]:checked').value;
     var minutes = parseInt(document.querySelector('input[name="time"]:checked').value, 10);
+    if (mode === 'practice') minutes = 0; /* practice mode has no timer */
     var now = Date.now();
     S = {
       mode: mode, minutes: minutes, start: now,
@@ -158,6 +171,7 @@
     showExam();
   }
   function resumeAttempt() {
+    if (S.mode === 'practice') { S.deadline = null; S.minutes = 0; }
     if (S.deadline && Date.now() >= S.deadline) { submit(true); return; }
     showExam();
   }
@@ -172,6 +186,7 @@
   function tick() {
     var el = document.getElementById('timer');
     if (!el || !S) return;
+    if (S.mode === 'practice') { el.textContent = ''; return; }
     if (!S.deadline) { el.textContent = clock(Date.now() - S.start) + ' elapsed'; return; }
     var left = S.deadline - Date.now();
     if (left <= 0) { submit(true); return; }

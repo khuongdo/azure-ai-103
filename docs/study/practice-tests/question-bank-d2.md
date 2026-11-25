@@ -4,7 +4,7 @@ skill: All mock exam questions of one exam domain, gathered in one interactive s
 sources:
   - https://aka.ms/AI103-StudyGuide
   - https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-apps-and-agents-developer-associate/
-retrieved: 2026-11-23
+retrieved: 2026-11-25
 ---
 
 # Question bank: Implement generative AI and agentic solutions

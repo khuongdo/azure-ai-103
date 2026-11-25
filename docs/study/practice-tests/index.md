@@ -75,7 +75,7 @@ Explanation tooling (in "apply responsible AI instrumentation") is covered throu
 
 ## How a test works
 
-1. **Start screen.** Choose a mode and a timer (120, 90 or 60 minutes, or no timer).
+1. **Start screen.** Choose a mode and a timer (120, 90 or 60 minutes, or no timer). Practice mode never uses a timer: the timer options are disabled when it is selected.
    - **Exam mode** (default): you answer all questions, can flag and revisit any of them, and nothing is revealed. When you press **Grade my test**, the test is scored.
    - **Practice mode**: after you answer a question, **Check answer** shows the explanations immediately. Use it for learning, not for measuring.
 2. **During the test.** The question map on the side shows answered (blue) and flagged (dot) questions. A summary dialog before grading lists unanswered and flagged questions so you can jump back to them. The timer turns amber at 10 minutes and red at 5 minutes. When it reaches zero, the test is graded automatically with the answers you have given.
